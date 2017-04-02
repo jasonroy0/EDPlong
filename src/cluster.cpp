@@ -10,22 +10,29 @@ using namespace arma;
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat Z>, vec u,   //data
-						 mat betaY, vec sig2, Nullable<mat b>,         //Y params
+List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec u,   //data
+						 mat betaY, vec sig2, Nullable<mat> b2,         //Y params
 						 mat xpipars, mat xmupars, mat xsigpars, //X params
 						 int ptrt, int p1, int p2,     //# vars
 						 double alphapsi, double alphatheta,  //alpha
 						 ivec Sy, ivec Sx, mat uniqueS,       //cluster
 						 vec beta0, mat prec0, double beta_a0, double beta_b0,  //priors on Yparams
-						 Nullable<vec sig2_b>, double a0_b, double b0_b,  // variance for b
+						 Nullable<vec> sig2_b2, double a0_b, double b0_b,  // variance for b
 						 double a0, double b0, // priors on discrete X vars
 						 double mu0, int nu0, double tau0, double c0, //priors on cont X vars
 						 double alp_a0, double alp_b0, //priors on alpha
 						 int m) {
  	
 	// first part if splines are included
-	if ( Z.isNotNull() ) {
-
+	if ( Z2.isNotNull() ) {
+    
+    mat Z, b;
+	  vec sig2_b;
+	  
+	  Z      = as<mat>(Z2);
+	  b      = as<mat>(b2);
+	  sig2_b = as<vec>(sig2_b2);
+    
 		int nobs = Xonly.n_rows;
 		int nbeta = betaY.n_cols;
 		int nknots = b.n_cols;
