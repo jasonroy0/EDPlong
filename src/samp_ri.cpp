@@ -10,8 +10,8 @@ using namespace Rcpp;
 
 
 // [[Rcpp::export]]
-List samp_u(vec y, mat Xall, Nullable<mat Z>,
-            mat betaY, Nullable<mat b>,
+List samp_u(vec y, mat Xall, Nullable<mat> Z2,
+            mat betaY, Nullable<mat> b2,
             vec ids, ivec Sy,
             double sig2_u, vec sig2,
             int n) {
@@ -28,13 +28,17 @@ List samp_u(vec y, mat Xall, Nullable<mat Z>,
 
   for(unsigned int ii = 0; ii < nbeta; ii++) xpos(ii) = ii;
 
-	bool zexists = Z.isNotNull();
-
+	bool zexists = Z2.isNotNull();
+  int nZ;
+  uvec zpos;
+	mat Z, matZ, b;
+	
 	if (zexists) {
-  	int nZ = Z.n_cols;
-		uvec zpos(nZ);
-		mat matZ;
-
+	  Z = as<mat>(Z2);
+	  b = as<mat>(b2);
+  	nZ = Z.n_cols;
+		
+		zpos.set_size(nZ);
   	for(unsigned int ii = 0; ii < nZ; ii++) zpos(ii) = ii;
 	}
 
