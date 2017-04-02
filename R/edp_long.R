@@ -10,7 +10,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
   n         <- length(unique.id)
   n2        <- nrow(newx)   # yields NULL if newx = NULL
 	nospline  <- is.null(spline)
-	nopred    <- (prior$npred == 0)
+	nopred    <- as.logical(mcmc$npred == 0)
 
 	## check validity of arguments
 	if( length(y) != length(timepoints)           ) stop( "length of y must be of same length as timepoints" )
@@ -19,9 +19,9 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	if( nrow(x) != n                              ) stop( "number of rows in x must be same as number of unique values in id" )
 	if( length(trt) != n & !is.null(trt)          ) stop( "length of trt must equal number of unique values in id" )
 	if( any( trt != 0 & trt != 1) & !is.null(trt) ) stop( "treatment must be binary variable with values of 0 or 1" )
-	if( !is.list(prior) | !is.null(prior)         ) stop( "prior must be a list")
-	if( !is.list(mcmc) | !is.null(mcmc)           ) stop( "mcmc must be a list")
-	if( !is.list(splines) | !is.null(splines)     ) stop( "splines must be a list")
+	if( !is.list(prior) & !is.null(prior)         ) stop( "prior must be a list or NULL")
+	if( !is.list(mcmc) & !is.null(mcmc)           ) stop( "mcmc must be a list")
+	if( !is.list(spline) & !is.null(spline)       ) stop( "spline must be a list")
   if( !is.logical(verbose)                      ) stop( "verbose must be a logical variable" )
   if( !is.numeric(printevery) | printevery <= 0 ) stop( "printevery must be an integer > 0")
 
@@ -89,13 +89,13 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
   if( !is.numeric(startX) | startX <= 0                        ) stop( "startX must be an integer > 0" )
   if( !is.numeric(npred) | npred < 0 | npred > ngibbs - burnin ) stop( "npred must be an integer >= 0 and be less than ngibbs - burnin" )
   if( !is.numeric(nsave) | nsave < 0 | nsave > ngibbs - burnin ) stop( "nsave must be an integer >= 0 and be less than ngibbs - burnin" )
-	if( length(pred.time) != 1 | length(pred.time) != n          ) stop( "pred.time must be of length 1 or length(unique(id))" )
-	if( !is.null(newX) ) {
-		if( length(pred.time.new) != 1 | length(pred.time.new) != n2 ) stop( "pred.time2 must be of length 1 or nrow(newx)" )
+	if( length(pred.time) != 1 & length(pred.time) != n          ) stop( "pred.time must be of length 1 or length(unique(id))" )
+	if( !is.null(newx) ) {
+		if( length(pred.time.new) != 1 & length(pred.time.new) != n2 ) stop( "pred.time2 must be of length 1 or nrow(newx)" )
   }
 
 	## check validity of prior list values
-  if( length(beta0) != ncol(x) + 1                ) stop( "beta0 must be of length ncol(x) + 1" )
+  #if( length(beta0) != ncol(x) + 1                ) stop( "beta0 must be of length ncol(x) + 1" )
   if( ncol(prec0) != length(beta0)                ) stop( "ncol(prec0) must be length of beta0" )
   if( nrow(prec0) != length(beta0)                ) stop( "nrow(prec0) must be length of beta0" )
   if( beta.a0 <= 0 | beta.b0 <= 0                 ) stop( "beta.a0 and beta.b0 must be positive numbers" ) 
@@ -109,14 +109,14 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
   if( alpa0 <= 0 | alpb0 <= 0                     ) stop( "alpa0 and alpb0 must be positive numbers" ) 
   if( !is.numeric(alpa0) | !is.numeric(alpb0)     ) stop( "alpa0 and alpb0 must be numeric" ) 
 	if( !is.numeric(mu0)                            ) stop( "mu0 must be numeric" )
-  if( !is.numeric(c0) ! c0 <=0                    ) stop( "c0 must be numeric and greater than 0" )
-  if( !is.numeric(tau0) ! tau0 <=0                ) stop( "tau0 must be numeric and greater than 0" )
-  if( !is.numeric(nu0) ! nu0 <=0                  ) stop( "nu0 must be numeric and greater than 0" )
+  if( !is.numeric(c0) | c0 <=0                    ) stop( "c0 must be numeric and greater than 0" )
+  if( !is.numeric(tau0) | tau0 <=0                ) stop( "tau0 must be numeric and greater than 0" )
+  if( !is.numeric(nu0) | nu0 <=0                  ) stop( "nu0 must be numeric and greater than 0" )
 
 	## check validity of spline list values
 	if (!nospline) {
   	if( !is.numeric(nknots) | nknots < 0                   ) stop( "nknots must be an integer >=0" )
-  	if( !is.numeric(knots) ! length(knots) != nknots       ) stop( "knots must be a numeric vector of length nknots" )
+  	if( !is.numeric(knots) | length(knots) != nknots       ) stop( "knots must be a numeric vector of length nknots" )
   	if( nknots > 0 & ( !is.numeric(degree) | degree <= 0 ) ) stop( "degree must be integer > 0" )
 	}
 
@@ -127,6 +127,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		ptrt <- 0
 	}
 
+  
 	## calculate variable types in x matrix	
 	num.unique <- apply(x, 2, countUnique)
 	first.cont <- firstContinuous(num.unique)
@@ -134,8 +135,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	p2         <- ncol(x) - first.cont + 1    ## number of continuous variables
 
 	## calucate number of timepoints per person
-	max.per.person <- as.data.frame(a1c.all) %>% 
-  				group_by(studyid) %>% 
+	max.per.person <- data.frame(id = id) %>% 
+  				group_by(id) %>% 
   				summarise(n = n())
 	mpp <- max.per.person$n
 
@@ -145,7 +146,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	mat.all   <- x[ long.rows , ]
 	mat.all   <- cbind( 1, mat.all )  ## add intercept
   mat.all   <- cbind( mat.all, timepoints )  ## add main effect for time
-
+  cat("test")
 	## make matrix for spline
 	if (!nospline) {
 		Z  <- splines::bs(timepoints, knots = knots, degree = degree)
@@ -154,7 +155,9 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		Z <- NULL
 		nZ <- 0
 	}
-
+  cat("STUFF:\n")
+  print(dim(Z))
+  print(nZ)
 	## make matrix for predictions
 	if (!nopred) {
 		if( length(pred.time) == 1) pt <- rep(pred.time, n)
@@ -206,7 +209,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	sig.reg <- numeric( length( unique( s[ , 1 ] ) ) )
 
 	if (!nospline) {
-		b.reg  <- matrix(NA , nrow = length( unique(s[ , 1 ] ) ) , ncol = nZ )  # regression parameters on knots
+		b.reg  <- matrix(0 , nrow = length( unique(s[ , 1 ] ) ) , ncol = nZ )  # regression parameters on knots
 		sig2.b <- numeric( length( unique( s[ , 1 ] ) ) )
 	} else {
 		b.reg  <- NULL
@@ -216,7 +219,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	x.pi.pars  <- matrix(NA , nrow = dim( unique(s) )[1], ncol = p1 + ptrt )
 	x.mu.pars  <- matrix(NA , nrow = dim( unique(s) )[1], ncol = p2 )
 	x.sig.pars <- matrix(NA , nrow = dim( unique(s) )[1], ncol = p2)
-
+  # initialize random intercept
+	u.int <- rep(0, n)
 
 	#### initialize parameter values
 	## regression parameters
@@ -230,7 +234,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 											beta0, prec0, beta.a0, beta.b0,
 											sig2.b, a0.b, b0.b)
 
-
+  cat("end samp_reg\n")
 	beta.reg <- get.reg$betaY
 	sig.reg  <- as.vector(get.reg$sig2)
 	if (!nospline) {
@@ -238,7 +242,13 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		sig2.b   <- as.vector(get.reg$sig2_b)
 	}
 
-
+	## todo:all thhis not needed. pare down
+	uniques             <- unique(s)
+	sortedunique        <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) , , drop=FALSE]
+	sorteduniqueyx      <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) ,  , drop=FALSE]
+	uniquey             <- unique( s[ , 1 ] )
+	sorteduniquey       <- uniquey[ order( uniquey ) ]
+	k                   <- length(uniquey) #number of y clusters
 	## covariate parameters
 	count <- 1
 	for(j in 1:k) {
@@ -282,18 +292,21 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
   } ## end covariate parameter update
 
-
-
+  cat("end covariates")
+  
+  # initialize
+  sig2.u <- 1.0
+  
 	## random intercept
 	get.u <- samp_u(y, as.matrix(mat.all), Z,
        						beta.reg, b.reg,
-       						all.ids, s[ , 1],
+       						id, s[ , 1],
        						sig2.u, sig.reg,
        						n)
 	u.int <- get.u$u
 	sig2.u <-  1/rgamma(1,a0.u+(n/2),b0.u + (0.5)*crossprod(u.int,u.int))
 
-
+  cat("end rand int\n")
 
 
 	#### calculations for predictions
@@ -315,6 +328,10 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		}
 	} else h0x <- NULL
 
+  ## initialization
+  alpha.psi   <- 1
+  alpha.theta <- 1
+  
 	#### containers for saving stuff
 	s.save           <- vector("list", nsave)
   beta.reg.save    <- vector("list", nsave)
@@ -333,7 +350,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	
 
 	#### iterate through MCMC draws
-
+  cat("start MCMC\n")
 	for(i in 1:ngibbs) {
 		
   	uniques <- unique(s)
@@ -362,7 +379,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 													 alpa0, alpb0, #priors on alpha
 													 m # no. of aux params
   												 )
-
+    cat("end cluster funciton\n")
 
   	s          <- cbind(cluster_res$Sy,cluster_res$Sx)
   	beta.reg   <- cluster_res$betaY
@@ -542,7 +559,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
   return( list( s           = s.save, 
 								beta.reg    = beta.reg.save, 
-								b.reg       = b.reg.save
+								b.reg       = b.reg.save,
 						  	sig.reg     = sig.reg.save, 
 								u.int       = u.int.save,
 								x.pi.pars   = x.pi.save, 

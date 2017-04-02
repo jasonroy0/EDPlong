@@ -105,10 +105,10 @@ newalppsi<-function(alpha,cluster,alpa0,alpb0){
   for(j in 1:length(sortuniquey)){
     ss[j]<-sum(cluster[,1]==sortuniquey[j])
   }
-  likecur<-dgamma(alpha,alpa0,alpb0)*(alpha^(nrow(unique(s))-k))*prod((alpha+ss)*beta(alpha+1,ss))
+  likecur<-dgamma(alpha,alpa0,alpb0)*(alpha^(nrow(unique(cluster))-k))*prod((alpha+ss)*beta(alpha+1,ss))
   #proposed<-rgamma(1,2,1)
   proposed <- rgamma(1,1,3)
-  likeprop<-dgamma(proposed,alpa0,alpb0)*(proposed^(nrow(unique(s))-k))*prod((proposed+ss)*beta(proposed+1,ss))
+  likeprop<-dgamma(proposed,alpa0,alpb0)*(proposed^(nrow(unique(cluster))-k))*prod((proposed+ss)*beta(proposed+1,ss))
   rat<-(likeprop)/(likecur)
   if(runif(1,0,1)<rat){alpha<-proposed}
   return(alpha)
