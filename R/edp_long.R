@@ -1,14 +1,7 @@
-library(Rcpp)
-library(data.table)
 library(dplyr)
-library(Hmisc)
-library(geepack)
 library(MCMCpack)
 library(mvnfast)
 library(splines)
-
-source("countUnique.R")
-source("firstContinuous.R")
 
 edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, spline, verbose, printevery) {
 
@@ -84,7 +77,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		cat("Predicting outcome every ", pred.rate, " draws post burn-in\n\n")
 		cat("-------------------------------------------------------------------\n")
 		cat(n, " subjects are contributing ", N, "observations\n")
-		if (is.null(n2)) cat("There are no additional subjects to predict (from newx argument)\n");
+		if (is.null(n2)) cat("There are no additional subjects to predict (from newx argument)\n")
 		else cat("There are an additional ", n2, "subjects to predict (from newx argument)\n")
 	}
 
