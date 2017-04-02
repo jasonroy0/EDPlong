@@ -1,6 +1,6 @@
 #include <RcppArmadillo.h>
 #include <Rmath.h>
-#include "../util.h"
+#include "util.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -29,33 +29,54 @@ using namespace Rcpp;
 // tZ2        - spline of timepoint2
 
 // [[Rcpp::export]]
-List pred(mat Xonly, Nullable<mat Xonly2>, Nullable<mat h0x>,
-	  mat betaY, vec sig2, Nullable<mat breg>,
+List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
+	  mat betaY, vec sig2, Nullable<mat> bregb,
 	  mat xpipars, mat xmupars, mat xsigpars,
 	  int ptrt, int p1, int p2,
 	  double alphapsi, double alphatheta,
 	  ivec Sy, ivec Sx, mat uniqueS,
 	  vec beta0, mat prec0, double beta_a0, double beta_b0, double a0_b, double b0_b,
-	  vec timepoint, Nullable<vec timepoint2>, Nullable<mat tZ>, Nullable<mat tZ2>) {
+	  vec timepoint, Nullable<vec> timepoint2b, Nullable<mat> tZb, Nullable<mat> tZ2b) {
 
-	bool spline_exists = breg.isNotNull(); // are there spline values?
-	bool newdat_exists = Xonly2.isNotNull(); // are there predictions from new data?
+	bool spline_exists = bregb.isNotNull(); // are there spline values?
+	bool newdata_exists = Xonly2b.isNotNull(); // are there predictions from new data?
 
+	
+	mat Xonly2, h0x, breg, tZ, tZ2;
+	vec timepoint2;
+
+	// cast nullable back to original types
+	
+	if (spline_exists) {
+	  breg = as<mat>(bregb);
+	  tZ   = as<mat>(tZb);
+	}
+	
+	if (newdata_exists) {
+	  Xonly2      = as<mat>(Xonly2b);
+	  h0x         = as<mat>(h0xb);
+	  timepoint2  = as<vec>(timepoint2b);
+	  
+	  if (spline_exists) {
+	    tZ2 = as<mat>(tZ2b);
+	  }
+	}
+		
   // number of observations
   int nobs = Xonly.n_rows;
-
+  int nobs2;
+	
   // containers to hold predictions - 1 per person
-  vec pred1;
+  vec pred1, pred2;
   pred1.zeros(nobs);
   
-
+  ivec pred2_clust;
 	if (newdata_exists) {
-  	int nobs2 = Xonly2.n_rows;
-		vec pred2;
+  	nobs2 = Xonly2.n_rows;
 		pred2.zeros(nobs2);
   
 		//containers for predicted cluster
-  	ivec pred2_clust; pred2_clust.zeros(nobs2);
+  	pred2_clust.zeros(nobs2);
 	}
 
   // numY = number of unique y clusters
@@ -93,7 +114,7 @@ List pred(mat Xonly, Nullable<mat Xonly2>, Nullable<mat h0x>,
     currX.insert_rows(0, 1);
     currX(0) = 1.0;
     currX.insert_rows(currX.size(), 1);
-    currX(currX.size() - 1, timepoint(i) );
+    currX(currX.size() - 1) = timepoint(i);
 
 		if (spline_exists) {
     	pred1(i) = R::rnorm( dot( betaY.row( Sy(i) - 1), currX) +
@@ -124,12 +145,11 @@ List pred(mat Xonly, Nullable<mat Xonly2>, Nullable<mat h0x>,
 		vec probs; probs.zeros(numY+1);
 
 		// values for new cluster
-		rowvec newbeta; newbeta.zeros(numBeta);
-		double newsig;
+		rowvec newbeta, newb; newbeta.zeros(numBeta);
+		double newsig, newsigb;
 
 		if (spline_exists) {
-			rowvec newb; newb.zeros(tZ.n_elem);
-			double newsigb;
+			newb.zeros(tZ.n_elem);
 		}
 
 		int nj, nlj, count, count2, chosenCluster;
