@@ -1,9 +1,32 @@
-library(dplyr)
-library(MCMCpack)
-library(mvnfast)
-library(splines)
-
-edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, spline, verbose, printevery) {
+#'Longitudinal mixed model with an enriched Dirichlet process prior
+#'
+#'  @description Fill in later.
+#' 
+#'  @param y vector of outcomes. may have multiple (longitudinal outcomes) for each subject.
+#'  @param trt vector of treatments (may be NULL). only one treatment is allowed per subject.
+#'  @param newtrt vector of treatments for hold out subjects whose outcome is predicted.
+#'  @param x matrix of covariates. accepts binary and continuous covariates. covariates must be ordered with binary variables first. each row must correspond to one subject so nrow(x) = length(unique(id))
+#'  @param newx matrix of covariates for hold out subjects whose outcome is predicted
+#'  @param id vector of ids corresponding to y. must have same length as y.
+#'  @param timepoints vector of timepoints on which outcome y is drawn.
+#'  @param prior list of prior parameters
+#'  @param mcmc list of mcmc parameters
+#'  @param spline list of spline rules for timepoints. may be NULL if none are desired.
+#'  @param verbose logical indicating if the user wants to see printed output in the console. default is FALSE.
+#'  @param printevery numeric indicating how often to print updates during MCMC algorithm. used only if verbose = TRUE. default is 100.
+#'  
+#'  @return Returns a list containing posterior draws and predictions for parameters. Size of output depends on value of mcmc$nsave.
+#'  
+#'  @export
+#'  
+#'  @useDynLib EDPlong
+#'  
+#'  @importFrom splines bs
+#'  @importFrom Rcpp evalCpp
+#'  @import dplyr
+#'  @import MCMCpack
+#'  @import mvnfast
+edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, spline, verbose = FALSE, printevery = 100) {
 
   N         <- length(id)
   unique.id <- unique(id)

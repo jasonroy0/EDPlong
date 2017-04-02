@@ -1,11 +1,17 @@
 Package: EDPlong
 Type: Package
-Title: What the package does (short line)
+Title: Mixed effects model with enriched Dirichlet process prior
+Description: Fit a longitudinal mixed effects model with B-splines. Uses Dirichlet Process prior.
 Version: 1.0
 Date: 2017-04-01
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Authors@R: c(
+    person("Bret", "Zeldow", , "zeldow@upenn.edu", c("aut", "cre")),
+    person("Willie", "Meng", role = "aut"),
+    person("Jason", "Roy", role = "aut")
+    )
+URL: https://github.com/zeldow/EDPlong
+BugReports: https://github.com/zeldow/EDPlong/issues
+License: GPL-3
 Imports: Rcpp (>= 0.12.9)
 LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 6.0.1

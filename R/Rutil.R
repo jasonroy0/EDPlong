@@ -1,8 +1,4 @@
 
-
-expit <- function(x) 1/(1+exp(x))
-inv<-function(x) chol2inv(chol(x))
-
 dinvchisq <- function (
   ### density function and for the (scaled) inverse-chi-squared distribution.
   x    			##<< vector of quantiles
