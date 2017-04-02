@@ -9,31 +9,44 @@ using namespace arma;
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-List samp_reg(vec y, mat Xall,  ivec all_ids, Nullable<mat Z>, vec u,   //data
-                mat betaY, vec sig2, Nullable<mat b>,         //Y params
+List samp_reg(vec y, mat Xall,  ivec all_ids, Nullable< NumericMatrix > Z2, vec u,   //data
+                mat betaY, vec sig2, Nullable<mat> b2,         //Y params
                 ivec Sy, ivec Sx, //mat uniqueS,       //cluster
                 vec beta0, mat prec0, double beta_a0, double beta_b0,  //priors on Yparams
-                Nullable<vec sig2_b>, double a0_b, double b0_b  // variance for b
+                Nullable<vec> sig2_b2, double a0_b, double b0_b  // variance for b
                 ) {
  
-	bool zexists = Z.isNotNull();
+  bool zexists;
+  
+  // these need to be declared outside the if statements
+  mat Z, b;
+  vec sig2_b;
+  
+  if ( Z2.isNotNull() ) {
+    zexists = true;
+    Z       = as<mat>(Z2);
+    b       = as<mat>(b2);
+    sig2_b  = as<vec>(sig2_b2);
+  }
+ 
+	
 
   int k = betaY.n_rows;
   int nbeta = betaY.n_cols;
-  mat matX;
+  mat matX, matZ;
   vec tempu, tempy, resid;
   uvec k_ids, curr_ids;
   uvec xpos(nbeta); 
+  
+  int nZ;
+  uvec zpos;
+  mat new_sig;
+  vec new_mu;
 	
 	if (zexists) {
 		int nZ = Z.n_cols;
-		mat matZ;
-		uvec zpos(nZ);
+		zpos.set_size(nZ);
   	for(unsigned int ii = 0; ii < nZ; ii++) zpos(ii) = ii;
-  	
-		//updating b;
-  	mat new_sig;
-  	vec new_mu;
  	}
 
   //updating regvar
