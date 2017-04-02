@@ -1,4 +1,4 @@
-## here we place functions written in R
+
 
 expit <- function(x) 1/(1+exp(x))
 inv<-function(x) chol2inv(chol(x))
@@ -65,42 +65,6 @@ rinvchisq <- function (
   return(x)
 }
 
-############## REGRESSION UPDATES ######################################
-#regression variance update
-newregvar<-function(tempx,tempy){
-  an<-beta.a0+length(tempy)/2
-  ifelse((ncol(as.matrix(tempx))>1),(xtx<-t(tempx)%*%tempx),(xtx<-as.matrix(tempx)%*%t(as.matrix(tempx))))
-  newprec<-xtx+prec0
-  if(ncol(as.matrix(tempx))>1){betan<-(inv(xtx+prec0))%*%(prec0%*%beta0+t(tempx)%*%tempy)}
-  if(ncol(as.matrix(tempx))<=1){betan<-(inv(xtx+prec0))%*%(prec0%*%beta0+(tempx*tempy))}
-  bn<-beta.b0+.5*(crossprod(tempy,tempy)+t(beta0)%*%prec0%*%beta0-t(betan)%*%newprec%*%betan)
-  return(rinvgamma(1,an,bn))
-}
-
-#regression betas update
-newbet<-function(tempx,tempy,sig){
-  ifelse((ncol(as.matrix(tempx))>1),(xtx<-t(tempx)%*%tempx),(xtx<-as.matrix(tempx)%*%t(as.matrix(tempx))))
-  newprec<-xtx+prec0
-  if(ncol(as.matrix(tempx))>1){betan<-(inv(xtx+prec0))%*%(prec0%*%beta0+t(tempx)%*%tempy)}
-  if(ncol(as.matrix(tempx))<=1){betan<-(inv(xtx+prec0))%*%(prec0%*%beta0+(tempx*tempy))}
-  return(rmvn(1,betan,sig*inv(newprec)))
-}
-###########################################################################
-
-
-samp.b<-function(tempz,tempy,sigy,sigb){
-  ifelse((ncol(as.matrix(tempz))>1),(ztz <- t(tempz)%*%tempz) , ztz <- outer(tempz,tempz)) 
-  new.sig <- inv(ztz/sigy+diag(nZ)/sigb)
-  ifelse((ncol(as.matrix(tempz))>1),new.mu <- new.sig%*%t(tempz)%*%tempy / sigy , new.mu <- new.sig%*%tempz%*%tempy / sigy) 
-  return(rmvn(1,new.mu,new.sig))
-}
-
-samp.u<- function(tempy,sigy,sigu) {
-  tempn <- length(tempy)
-  new.sig <- (tempn/sigy + 1/sigu)^-1
-  new.mu <- new.sig * sum(tempy)/sigy
-  return(rnorm(1,new.mu,sqrt(new.sig)))
-}
 
 ## see https://www.cs.ubc.ca/~murphyk/Papers/bayesGauss.pdf (section 5) for more details
 
@@ -150,3 +114,16 @@ newalppsi<-function(alpha,cluster,alpa0,alpb0){
   return(alpha)
 }
 ############################################################################
+
+
+## count unique number of elements in vector
+countUnique <- function(x) return( length( unique(x) ) )
+
+## find first element in vector that is > 2
+firstContinuous <- function(x) {
+  return( Position( function(p) p > 2,
+                    x,
+                    right = FALSE,
+                    nomatch = NA_integer )  
+  )
+}
