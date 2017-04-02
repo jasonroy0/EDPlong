@@ -150,7 +150,6 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	mat.all   <- x[ long.rows , ]
 	mat.all   <- cbind( 1, mat.all )  ## add intercept
   mat.all   <- cbind( mat.all, timepoints )  ## add main effect for time
-  cat("test")
 	## make matrix for spline
 	if (!nospline) {
 		Z  <- splines::bs(timepoints, knots = knots, degree = degree)
@@ -159,9 +158,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		Z <- NULL
 		nZ <- 0
 	}
-  cat("STUFF:\n")
-  print(dim(Z))
-  print(nZ)
+
 	## make matrix for predictions
 	if (!nopred) {
 		if( length(pred.time) == 1) pt <- rep(pred.time, n)
@@ -238,7 +235,6 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 											beta0, prec0, beta.a0, beta.b0,
 											sig2.b, a0.b, b0.b)
 
-  cat("end samp_reg\n")
 	beta.reg <- get.reg$betaY
 	sig.reg  <- as.vector(get.reg$sig2)
 	if (!nospline) {
@@ -296,8 +292,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
   } ## end covariate parameter update
 
-  cat("end covariates")
-  
+
   # initialize
   sig2.u <- 1.0
   
@@ -309,8 +304,6 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
        						n)
 	u.int <- get.u$u
 	sig2.u <-  1/rgamma(1,a0.u+(n/2),b0.u + (0.5)*crossprod(u.int,u.int))
-
-  cat("end rand int\n")
 
 
 	#### calculations for predictions
@@ -359,7 +352,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	
 
 	#### iterate through MCMC draws
-  cat("start MCMC\n")
+  if (verbose) cat("Beginning MCMC algorithm\n")
 	for(i in 1:ngibbs) {
 		
   	uniques <- unique(s)
@@ -388,8 +381,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 													 alpa0, alpb0, #priors on alpha
 													 m # no. of aux params
   												 )
-    cat("end cluster funciton\n")
-
+  	
   	s          <- cbind(cluster_res$Sy,cluster_res$Sx)
   	beta.reg   <- cluster_res$betaY
   	sig.reg    <- as.vector(cluster_res$sig2)
@@ -505,7 +497,6 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 		## todo: update function to handle additional parameters
   	if(i > burnin & i %% pred.rate == 0) {
-  	  cat("about to predict")
     	preds <- pred(Xonly      = as.matrix(x),
       	            Xonly2b     = newx,
         	          h0xb        = h0x,

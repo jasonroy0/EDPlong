@@ -16,7 +16,6 @@ List samp_reg(vec y, mat Xall,  ivec all_ids, Nullable<mat> Z2, vec u,   //data
                 Nullable<vec> sig2_b2, double a0_b, double b0_b  // variance for b
                 ) {
  
-  Rcout << "in samp_reg" << std::endl;
   bool zexists = false;
   
   // these need to be declared outside the if statements
@@ -30,8 +29,6 @@ List samp_reg(vec y, mat Xall,  ivec all_ids, Nullable<mat> Z2, vec u,   //data
     sig2_b  = as<vec>(sig2_b2);
   }
  
-	Rcout << "Z.n_cols: " << Z.n_cols << std::endl;
-
   int k = betaY.n_rows;
   int nbeta = betaY.n_cols;
   mat matX, matZ;
@@ -44,23 +41,17 @@ List samp_reg(vec y, mat Xall,  ivec all_ids, Nullable<mat> Z2, vec u,   //data
   mat new_sig;
   vec new_mu;
 	
-	Rcout << zexists << std::endl;
-	
 	if (zexists) {
 		nZ = Z.n_cols;
 		zpos.set_size(nZ);
   	for(unsigned int ii = 0; ii < nZ; ii++) zpos(ii) = ii;
  	}
 	
-	Rcout << "nZ: " << nZ << std::endl;
-
   //updating regvar
   double an;
   mat bn;
   mat newprec;
   vec betan;
-  
-  Rcout << "test2" << std::endl;
   
   for(unsigned int ii = 0; ii < nbeta; ii++) xpos(ii) = ii;
   
@@ -69,55 +60,44 @@ List samp_reg(vec y, mat Xall,  ivec all_ids, Nullable<mat> Z2, vec u,   //data
     //step 1: ids with Sy = k+1
     k_ids = find(Sy == i + 1);
     int nk = k_ids.n_elem;
-    Rcout << "nk: " << nk << std::endl;
     curr_ids = find(all_ids == k_ids(0) + 1);
     for(int ii = 1; ii < nk; ii++) curr_ids = join_cols(curr_ids, find(all_ids == k_ids(ii) + 1));
 
     //step 2: matX and matZ and y for those ids
     tempy = y(curr_ids);
-    Rcout << "tempy(0): " << tempy(0) << std::endl;
     matX = Xall(curr_ids,xpos);
     if (zexists) matZ = Z(curr_ids,zpos);
     
     //step 3: u with those ids
     tempu = u(curr_ids);
-    Rcout << "u(0): " << u(0) << std::endl;
-    
+
     //step 4: resids Y - Z - u
     if (zexists) {
 			resid = tempy - tempu - matZ * trans(b.row(i));
 		} else {
 			resid = tempy - tempu;
    	}
-		Rcout << "resid(0): " << resid(0) << std::endl; 
-		
+
 
     //step 5: update sigreg
     an = beta_a0 + tempy.n_elem/2;
-    Rcout << "an: " << an << std::endl;
     newprec = matX.t()*matX + prec0;
     betan = newprec.i()*(prec0*beta0 + matX.t()*resid);
     bn = beta_b0 + 0.5 * (resid.t()*resid + beta0.t()*prec0*beta0 - betan.t()*newprec*betan);
     //Rprintf("an: %.2f\n",an);
-    Rcout << bn << std::endl;
     sig2(i) = 1/R::rgamma(an,1/bn(0,0));
     
     //step 6: update beta
-    Rcout << "test3" << std::endl;
     betaY.row(i) = trans(mvrnorm(betan,sig2(i) * newprec.i()));
-    //vec test = mvrnorm(betan,sig2(i) * newprec.i());
-    Rcout << "test4" << std::endl;
-    
+
     if (zexists) {
     	//step 7: update sig_b
 			sig2_b(i) = 1/R::rgamma(a0_b + nZ/2, 1/(b0_b + 0.5*accu(pow(b.row(i),2))));
     
     	//step 8: resids Y - X - u
     	resid = tempy - matX * trans(betaY.row(i)) - tempu;
-      Rcout << "test5" << std::endl;
-      
+
     	//step 9: update b
-    	Rcout << "nZ: " << nZ << std::endl;
     	new_sig = matZ.t()*matZ / sig2(i) + eye(nZ, nZ) / sig2_b(i);
     	new_mu = new_sig.i()*matZ.t()*resid / sig2(i);
     	b.row(i) = trans(mvrnorm(new_mu,new_sig.i()));
