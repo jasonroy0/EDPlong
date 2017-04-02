@@ -46,6 +46,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
   c0      <- prior$c0
   tau0    <- prior$tau0
   nu0     <- prior$nu0
+  prop.a  <- prior$prop.a
+  prop.b  <- prior$prop.b
 
 	# splines -- only perform these if splines have been specified
 	if (!nospline) {
@@ -112,6 +114,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
   if( !is.numeric(c0) | c0 <=0                    ) stop( "c0 must be numeric and greater than 0" )
   if( !is.numeric(tau0) | tau0 <=0                ) stop( "tau0 must be numeric and greater than 0" )
   if( !is.numeric(nu0) | nu0 <=0                  ) stop( "nu0 must be numeric and greater than 0" )
+  if( prop.a <= 0 | prop.b <= 0                   ) stop( "prop.a and prop.b must be positive numbers" ) 
+  if( !is.numeric(prop.a) | !is.numeric(prop.b)   ) stop( "prop.a and prop.b must be numeric" ) 
 
 	## check validity of spline list values
 	if (!nospline) {
@@ -346,6 +350,11 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	alpha.psi.rep    <- numeric(ngibbs)
 	total.clusters   <- numeric(ngibbs)
 	total.Y.clusters <- numeric(ngibbs)
+	
+	pred.w.data      <- matrix(NA, nrow = npred, ncol = n)
+	
+	if(!is.null(n2)) pred.wo.data <- matrix(NA, nrow = npred, ncol = n2)
+	else pred.wo.data <- NULL
   
 	
 
@@ -484,7 +493,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
   	alpha.theta.rep[i] <- alpha.theta
   
   	#  alpha.psi
-  	alpha.psi        <- newalppsi( alpha.psi , s , alpa0 , alpb0 )
+  	alpha.psi        <- newalppsi( alpha.psi , s , alpa0 , alpb0, prop.a, prop.b )
   	alpha.psi.rep[i] <- alpha.psi
 
 
@@ -495,13 +504,14 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		##########################################
 
 		## todo: update function to handle additional parameters
-  	if(i > nburn & i %% pred.rate == 0) {
+  	if(i > burnin & i %% pred.rate == 0) {
+  	  cat("about to predict")
     	preds <- pred(Xonly      = as.matrix(x),
-      	            Xonly2     = as.matrix(newx),
-        	          h0x        = h0x,
+      	            Xonly2b     = newx,
+        	          h0xb        = h0x,
           	        betaY      = beta.reg,
             	      sig2       = sig.reg,
-              	    breg       = b.reg,
+              	    bregb       = b.reg,
                 	  xpipars    = x.pi.pars,
                  		xmupars    = x.mu.pars,
                   	xsigpars   = x.sig.pars,
@@ -520,12 +530,12 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
                   	a0_b       = a0.b,
                   	b0_b       = b0.b,
                   	timepoint  = pt,
-										timepoint2 = pt.new,
-                  	tZ         = tZ,
-										tZ2        = tZ.new)
+										timepoint2b = pt.new,
+                  	tZb         = pZ,
+										tZ2b        = pZ.new )
 
-	    pred.w.data[(i - nburn) / pred.rate, ]  <- preds$pred1
-  	  pred.wo.data[(i - nburn) / pred.rate, ] <- preds$pred2
+	    pred.w.data[(i - burnin) / pred.rate, ]  <- preds$pred1
+  	  pred.wo.data[(i - burnin) / pred.rate, ] <- preds$pred2
   	}
 
 
@@ -536,15 +546,15 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		##########################################
 		##########################################
 
-  	if(i > nburn & i %% save.rate == 0) {
-			s.save[[j]]           <- s
-  		beta.reg.save[[j]]    <- beta.reg
-  		b.reg.save[[j]]       <- b.reg
-  		sig.reg.save[[j]]     <- sig.reg
-  		u.int.save[[j]]       <- u.int
-  		x.pi.save[[j]]        <- x.pi.pars
-  		x.mu.save[[j]]        <- x.mu.pars
-  		x.sig.save[[j]]       <- x.sig.pars
+  	if(i > burnin & i %% save.rate == 0) {
+			s.save[[(i - burnin) / save.rate]]           <- s
+  		beta.reg.save[[(i - burnin) / save.rate]]    <- beta.reg
+  		b.reg.save[[(i - burnin) / save.rate]]       <- b.reg
+  		sig.reg.save[[(i - burnin) / save.rate]]     <- sig.reg
+  		u.int.save[[(i - burnin) / save.rate]]       <- u.int
+  		x.pi.save[[(i - burnin) / save.rate]]        <- x.pi.pars
+  		x.mu.save[[(i - burnin) / save.rate]]        <- x.mu.pars
+  		x.sig.save[[(i - burnin) / save.rate]]       <- x.sig.pars
 		}
 		##########################################
 		##########################################
@@ -557,16 +567,18 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 	}  ## end of gibbs loop
 
-  return( list( s           = s.save, 
-								beta.reg    = beta.reg.save, 
-								b.reg       = b.reg.save,
-						  	sig.reg     = sig.reg.save, 
-								u.int       = u.int.save,
-								x.pi.pars   = x.pi.save, 
-								x.mu.pars   = x.mu.save, 
-								x.sig.pars  = x.sig.save,
-								sig.u       = sig.u.save, 
-								alpha.theta = alpha.theta.rep, 
-								alpha.psi   = alpha.psi.rep ) )							
+  return( list( s            = s.save, 
+								beta.reg     = beta.reg.save, 
+								b.reg        = b.reg.save,
+						  	sig.reg      = sig.reg.save, 
+								u.int        = u.int.save,
+								x.pi.pars    = x.pi.save, 
+								x.mu.pars    = x.mu.save, 
+								x.sig.pars   = x.sig.save,
+								sig.u        = sig.u.save, 
+								alpha.theta  = alpha.theta.rep, 
+								alpha.psi    = alpha.psi.rep ,
+								pred.w.data  = pred.w.data,
+								pred.wo.data = pred.wo.data) )							
 
 }
