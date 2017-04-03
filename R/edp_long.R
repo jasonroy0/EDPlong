@@ -567,10 +567,12 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		##########################################
 		##########################################
 
-  	if( i %% printevery == 0) cat("Iteration: ",i," of ",ngibbs,"\n")
+  	if ( (verbose) & (i %% printevery == 0) ) cat("Iteration: ",i," of ",ngibbs,"\n")
 
 
 	}  ## end of gibbs loop
+
+  if (verbose) cat("end of MCMC algorithm\n)"
 
   return( list( s            = s.save, 
 								beta.reg     = beta.reg.save, 
