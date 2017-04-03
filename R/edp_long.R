@@ -149,7 +149,10 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 	if( !is.null(trt) ) {
 		x    <- cbind(trt, x)
-		ptrt <- 1 
+		ptrt <- 1
+    if ( !is.null(n2) ) {
+      newx <- cbind(newtrt, newx)
+    }
 	} else {
 		ptrt <- 0
 	}
