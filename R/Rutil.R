@@ -65,7 +65,7 @@ rinvchisq <- function (
 ## see https://www.cs.ubc.ca/~murphyk/Papers/bayesGauss.pdf (section 5) for more details
 
 ############CONTINUOUS COVARIATES UPDATES##################################
-updatevar<-function(tempx){
+updatevar<-function(tempx,nu0,tau0,c0,mu0){
   newdf<-nu0+length(tempx)
   if(length(tempx)==1){varx<-0}
   if(length(tempx)>1){varx<-var(tempx)}
@@ -74,7 +74,7 @@ updatevar<-function(tempx){
   return(newval)
 }
 
-updatemean<-function(tempx,curtau){
+updatemean<-function(tempx,curtau,c0,mu0){
   newvar<-1/(c0/curtau+length(tempx)/curtau)
   newmean<-(mu0*c0/curtau+mean(tempx)*length(tempx)/curtau)*newvar
   newval<-rnorm(1,newmean,sqrt(newvar))

@@ -298,10 +298,10 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 				for(ii in 1:p2){
 			          tempx <- matX[ , ( p1 + ptrt + ii ) ]
 								
-							x.sig.pars[count, ii] <- updatevar(tempx)
+							x.sig.pars[count, ii] <- updatevar(tempx, nu0, tau0, c0, mu0)
 								
 							#posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
-							x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii])
+							x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii], c0, mu0)
 				}
 			}
 			
