@@ -510,7 +510,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		##########################################
 
 		## todo: update function to handle additional parameters
-  	if(i > burnin & i %% pred.rate == 0) {
+  	if(i > burnin & (i - burnin) %% pred.rate == 0) {
     	preds <- pred(Xonly      = as.matrix(x),
       	            Xonly2b     = newx,
         	          h0xb        = h0x,
@@ -551,7 +551,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		##########################################
 		##########################################
 
-  	if(i > burnin & i %% save.rate == 0) {
+  	if(i > burnin & (i - burnin) %% save.rate == 0) {
 			s.save[[(i - burnin) / save.rate]]           <- s
   		beta.reg.save[[(i - burnin) / save.rate]]    <- beta.reg
   		b.reg.save[[(i - burnin) / save.rate]]       <- b.reg
