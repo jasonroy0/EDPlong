@@ -105,7 +105,7 @@ newalppsi <- function(alpha, cluster, alpa0, alpb0, prop.a, prop.b) {
   #for(j in 1:length(sortuniquey)){
   #  ss[j]<-sum(cluster[,1]==sortuniquey[j])
   #}
-  ss       <- as.numeric(table(s[,1])) ## number of subjects in each y cluster
+  ss       <- as.numeric(table(cluster[,1])) ## number of subjects in each y cluster
   likecur  <- dgamma(alpha, alpa0, alpb0) * ( alpha^(k - l) ) * 
               prod( (alpha + ss) * beta( alpha + 1, ss))
   proposed <- rgamma(1, prop.a, prop.b)
