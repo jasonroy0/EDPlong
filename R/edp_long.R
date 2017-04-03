@@ -293,21 +293,16 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 			## continuous covariates
 			if (p2 > 0) {
 				for(ii in 1:p2){
-						#beta(1,1) prior
-					for(j in 1:k){
-						for(l in 1:length( unique( s[ s[ , 1] == sorteduniquey[j], 2] ) ) ) {
-							tempx <- X.only[ (s[ , 1] == sorteduniquey[j]), ( p1 + ptrt + ii ) ]
-							temps <- s[ (s[ , 1] == sorteduniquey[j]), 2]
-							tempx <- tempx[ temps == sort( unique( temps ) )[l] ]
+			          tempx <- matX[ , ( p1 + ptrt + ii ) ]
 								
 							x.sig.pars[count, ii] <- updatevar(tempx)
 								
 							#posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
 							x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii])
-						}
-					}
 				}
-			}	
+			}
+			
+	
  
       count <- count+1
     
@@ -477,25 +472,18 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 				## continuous covariates
 				if (p2 > 0) {
 					for(ii in 1:p2){
-						#beta(1,1) prior
-						for(j in 1:k){
-							for(l in 1:length( unique( s[ s[ , 1] == sorteduniquey[j], 2] ) ) ){
-								tempx <- X.only[ (s[ , 1] == sorteduniquey[j]), ( p1 + ptrt + ii ) ]
-								temps <- s[ (s[ , 1] == sorteduniquey[j]), 2]
-								tempx <- tempx[ temps == sort( unique( temps ) )[l] ]
+		                          tempx <- matX[ , ( p1 + ptrt + ii ) ]
 								
-								x.sig.pars[count, ii] <- updatevar(tempx)
+					  x.sig.pars[count, ii] <- updatevar(tempx)
 								
-								#posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
-								x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii])
-							}
-						}
+					  #posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
+					  x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii])
 					}
 				}	
  
       	count <- count+1
     	}
-  	}
+    }
   
 	
 
