@@ -149,7 +149,7 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 		double newsig, newsigb;
 
 		if (spline_exists) {
-			newb.zeros(tZ.n_elem);
+			newb.zeros(tZ.n_cols);
 		}
 
 		int nj, nlj, count, count2, chosenCluster;
