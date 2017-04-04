@@ -232,7 +232,7 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 					newbeta = trans(mvrnorm(beta0, newsig*prec0));
 					if (spline_exists) {
 						newsigb = 1/R::rgamma(a0_b,b0_b);
-						for(int ii = 0; ii < tZ2.n_elem; ii++) {
+						for(int ii = 0; ii < tZ2.n_cols; ii++) {
 							newb(ii) = R::rnorm(0.0,sqrt(newsigb));
 						}
 					
