@@ -367,9 +367,13 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	
 	pred.w.data      <- matrix(NA, nrow = npred, ncol = n)
 	
-	if(!is.null(n2)) pred.wo.data <- matrix(NA, nrow = npred, ncol = n2)
-	else pred.wo.data <- NULL
-  
+	if(!is.null(n2)) {
+    pred.wo.data         <- matrix(NA, nrow = npred, ncol = n2)
+    pred.wo.data.cluster <- matrix(NA, nrow = npred, ncol = n2)
+  } else {
+    pred.wo.data         <- NULL
+    pred.wo.data.cluster <- NULL
+  }
 	
 
 	#### iterate through MCMC draws
@@ -511,36 +515,39 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 		## todo: update function to handle additional parameters
   	if(i > burnin & (i - burnin) %% pred.rate == 0) {
-    	preds <- pred(Xonly      = as.matrix(x),
+    	preds <- pred(Xonly       = as.matrix(x),
       	            Xonly2b     = newx,
         	          h0xb        = h0x,
-          	        betaY      = beta.reg,
-            	      sig2       = sig.reg,
+          	        betaY       = beta.reg,
+            	      sig2        = sig.reg,
               	    bregb       = b.reg,
-                	  xpipars    = x.pi.pars,
-                 		xmupars    = x.mu.pars,
-                  	xsigpars   = x.sig.pars,
-                  	ptrt       = ptrt,
-                  	p1         = p1,
-                  	p2         = p2,
-                  	alphapsi   = alpha.psi,
-                  	alphatheta = alpha.theta,
-                  	Sy         = s[ , 1],
-                  	Sx         = s[ , 2],
-                  	uniqueS    = sortedunique,
-                  	beta0      = beta0,
-                  	prec0      = prec0,
-                  	beta_a0    = beta.a0,
-                  	beta_b0    = beta.b0,
-                  	a0_b       = a0.b,
-                  	b0_b       = b0.b,
-                  	timepoint  = pt,
+                	  xpipars     = x.pi.pars,
+                 		xmupars     = x.mu.pars,
+                  	xsigpars    = x.sig.pars,
+                  	ptrt        = ptrt,
+                  	p1          = p1,
+                  	p2          = p2,
+                  	alphapsi    = alpha.psi,
+                  	alphatheta  = alpha.theta,
+                  	Sy          = s[ , 1],
+                  	Sx          = s[ , 2],
+                  	uniqueS     = sortedunique,
+                  	beta0       = beta0,
+                  	prec0       = prec0,
+                  	beta_a0     = beta.a0,
+                  	beta_b0     = beta.b0,
+                  	a0_b        = a0.b,
+                  	b0_b        = b0.b,
+                  	timepoint   = pt,
 										timepoint2b = pt.new,
                   	tZb         = pZ,
 										tZ2b        = pZ.new )
 
-	    pred.w.data[(i - burnin) / pred.rate, ]  <- preds$pred1
-  	  pred.wo.data[(i - burnin) / pred.rate, ] <- preds$pred2
+	    pred.w.data[(i - burnin) / pred.rate, ]          <- preds$pred1
+  	  if (!is.null(n2)) {
+        pred.wo.data[(i - burnin) / pred.rate, ]         <- preds$pred2
+  	    pred.wo.data.cluster[(i - burnin) / pred.rate, ] <- preds$pred2_clust
+      }
   	}
 
 
@@ -586,6 +593,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 								alpha.theta  = alpha.theta.rep, 
 								alpha.psi    = alpha.psi.rep ,
 								pred.w.data  = pred.w.data,
-								pred.wo.data = pred.wo.data) )							
+								pred.wo.data = pred.wo.data,
+                pred.wo.datc = pred.wo.data.cluster) )							
 
 }
