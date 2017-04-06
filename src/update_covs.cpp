@@ -45,11 +45,11 @@ List update_covs(mat matX, mat s, mat uniqueS,
   
   for(int j = 0; j < k; j++) {
     vdummy = find(uniqueS.col(0) == (j + 1));
-    nx = vdummy.size();
+    nx = vdummy.n_elem;
     //n.x <- length( unique( s[ s[ , 1 ] == j , 2] ) )  // number of x clusters within jth y cluster
     
     for(int l = 0; l < nx; l++) {
-      vdummy = find(s.col(0) == j + 1 && s.col(2) == l + 1);
+      vdummy = find(s.col(0) == j + 1 && s.col(1) == l + 1);
       tempX   = matX( vdummy, xpos ); 
        
       
