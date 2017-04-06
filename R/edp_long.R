@@ -404,6 +404,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 	#### iterate through MCMC draws
   if (verbose) cat("Beginning MCMC algorithm\n")
+	beg.time     <- Sys.time()
+	int.beg.time <- Sys.time()
 	for(i in 1:ngibbs) {
 		
   	uniques <- unique(s)
@@ -615,13 +617,18 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		##########################################
 		##########################################
 
-  	if ( (verbose) & (i %% printevery == 0) ) cat("Iteration: ",i," of ",ngibbs,"\n")
-
+  	if ( (verbose) & (i %% printevery == 0) ) {
+  	  cat("Iteration: ",i," of ",ngibbs,"\n")
+  	  cat("Time elapsed: ", Sys.time() - int.beg.time, "\n\n")
+  	  int.beg.time <- Sys.time()
+    }
 
 	}  ## end of gibbs loop
 
-  if (verbose) cat("end of MCMC algorithm\n")
-
+  if (verbose) {
+    cat("end of MCMC algorithm\n")
+    cat("Total time elapsed: ", Sys.time() - beg.time, "\n")
+  }
   return( list( s            = s.save, 
 								beta.reg     = beta.reg.save, 
 								b.reg        = b.reg.save,
