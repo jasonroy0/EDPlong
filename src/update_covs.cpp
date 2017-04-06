@@ -33,18 +33,15 @@ List update_covs(mat matX, mat s, mat uniqueS,
   uvec xpos(p1 + p2 + ptrt);
   for(unsigned int ii = 0; ii < p1 + p2 + ptrt; ii++) xpos(ii) = ii;
   
-  mat tempX;
-  vec tempx;
+  mat tempX; // subsetted matrix of X values for appropriate cluster
+  vec tempx; // vector from tempX of single column
   uvec vdummy;
   int  dummy, nx, sizex;
   double newdf, varx, numer, meanx, sumx, curtau, newvar, newmean;
   
   int count = 0;
   
-  
   int k = max(uniqueS.col(0)) - 1; //number of unique Y clusters
-  
-  
   
   for(int j = 0; j < k; j++) {
     vdummy = find(uniqueS.col(0) == (j + 1));
