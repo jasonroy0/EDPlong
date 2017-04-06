@@ -242,10 +242,20 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		b.reg  <- NULL
 		sig2.b <- NULL
 	}
-
-	x.pi.pars  <- matrix(NA , nrow = dim( unique(s) )[1], ncol = p1 + ptrt )
-	x.mu.pars  <- matrix(NA , nrow = dim( unique(s) )[1], ncol = p2 )
-	x.sig.pars <- matrix(NA , nrow = dim( unique(s) )[1], ncol = p2)
+  
+	x.pi.pars  <- NULL
+	x.mu.pars  <- NULL
+	x.sig.pars <- NULL
+	
+	if (p1 + ptrt > 0) {
+	  x.pi.pars  <- matrix(0 , nrow = dim(unique(s))[1], ncol = p1 + ptrt)
+	}
+	
+	if (p2 > 0) {
+	  x.mu.pars  <- matrix(0 , nrow = dim(unique(s))[1], ncol = p2)
+	  x.sig.pars <- matrix(0 , nrow = dim(unique(s))[1], ncol = p2)
+	}
+	
   # initialize random intercept
 	u.int <- rep(0, n)
 
@@ -270,48 +280,64 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 	## todo:all thhis not needed. pare down
 	uniques             <- unique(s)
-	sortedunique        <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) , , drop=FALSE]
-	sorteduniqueyx      <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) ,  , drop=FALSE]
-	uniquey             <- unique( s[ , 1 ] )
-	sorteduniquey       <- uniquey[ order( uniquey ) ]
-	k                   <- length(uniquey) #number of y clusters
+	sortedunique        <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) , , drop=FALSE ]
+	# uniquey             <- unique( s[ , 1 ] )
+	# k                   <- length(uniquey) #number of y clusters
 	## covariate parameters
-	count <- 1
-	for(j in 1:k) {
-		n.x <- length( unique( s[ s[ , 1 ] == j , 2] ) )  ## number of x clusters within jth y cluster
-		
-		for( l in 1:n.x ) {
-			matX <- x[ ( s[ , 1 ] == j ) & ( s[ , 2 ] == l ) , , drop=FALSE]
-	 
-
-			## binary covariates
-			if (ptrt + p1 > 0 ) {
-				for( ii in 1:( ptrt + p1 ) ) {   ## binary covariates
-				
-					x.pi.pars[count, ii] <- rbeta( 1 , sum( matX[ ,ii] ) + a0 , length( matX[ ,ii] ) - sum( matX[ ,ii] ) + b0 )
-				
-				}	
-			}
-			
-			## continuous covariates
-			if (p2 > 0) {
-				for(ii in 1:p2){
-			          tempx <- matX[ , ( p1 + ptrt + ii ) ]
-								
-							x.sig.pars[count, ii] <- updatevar(tempx, nu0, tau0, c0, mu0)
-								
-							#posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
-							x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii], c0, mu0)
-				}
-			}
-			
+# 	count <- 1
+# 	for(j in 1:k) {
+# 		n.x <- length( unique( s[ s[ , 1 ] == j , 2] ) )  ## number of x clusters within jth y cluster
+# 		
+# 		for( l in 1:n.x ) {
+# 			matX <- x[ ( s[ , 1 ] == j ) & ( s[ , 2 ] == l ) , , drop=FALSE]
+# 	 
+# 
+# 			## binary covariates
+# 			if (ptrt + p1 > 0 ) {
+# 				for( ii in 1:( ptrt + p1 ) ) {   ## binary covariates
+# 				
+# 					x.pi.pars[count, ii] <- rbeta( 1 , sum( matX[ ,ii] ) + a0 , length( matX[ ,ii] ) - sum( matX[ ,ii] ) + b0 )
+# 				
+# 				}	
+# 			}
+# 			
+# 			## continuous covariates
+# 			if (p2 > 0) {
+# 				for(ii in 1:p2){
+# 			          tempx <- matX[ , ( p1 + ptrt + ii ) ]
+# 								
+# 							x.sig.pars[count, ii] <- updatevar(tempx, nu0, tau0, c0, mu0)
+# 								
+# 							#posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
+# 							x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii], c0, mu0)
+# 				}
+# 			}
+# 			
+# 	
+#  
+#       count <- count+1
+#     
+# 		}
+# 
+#   } ## end covariate parameter update
 	
- 
-      count <- count+1
-    
-		}
-
-  } ## end covariate parameter update
+	covs <- update_covs(x, s, sortedunique, x.pi.pars,
+	                    x.mu.pars, x.sig.pars,
+	                    p1, p2, ptrt,
+	                    a0, b0, 
+	                    mu0, nu0, tau0, c0)
+	
+	if (p1 + ptrt > 0 & p2 > 0) {
+	  x.pi.pars <- covs$xpipars
+	  x.mu.pars <- covs$xmupars
+	  x.sig.pars <- covs$xsigpars
+	} else if (p2 == 0) {
+	  x.pi.pars <- covs$xpipars
+	} else if (p1 + ptrt == 0) {
+	  x.mu.pars <- covs$xmupars
+	  x.sig.pars <- covs$xsigpars
+	}
+	
 
 
   # initialize
@@ -420,9 +446,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
   	uniques             <- unique(s)
   	sortedunique        <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) , , drop=FALSE]
-  	sorteduniqueyx      <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) ,  , drop=FALSE]
   	uniquey             <- unique( s[ , 1 ] )
-  	sorteduniquey       <- uniquey[ order( uniquey ) ]
   	total.clusters[i]   <- nrow(uniques)
   	k                   <- length(uniquey) #number of y clusters
   	total.Y.clusters[i] <- k
@@ -459,38 +483,55 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 
 		####### update covariate parameters #######
-  	count <- 1
-  	for(j in 1:k) {
-    	n.x <- length( unique( s[ s[ , 1 ] == j , 2] ) )  ## number of x clusters within jth y cluster
-    	
-    	for( l in 1:n.x ) {
-      	matX <- x[ ( s[ , 1 ] == j ) & ( s[ , 2 ] == l ) , , drop=FALSE]
-     
-
-		 		## binary covariates
-      	if (ptrt + p1 > 0 ) {
-					for( ii in 1:( ptrt + p1 ) ) {   ## binary covariates
-					
-						x.pi.pars[count, ii] <- rbeta( 1 , sum( matX[ ,ii] ) + a0 , length( matX[ ,ii] ) - sum( matX[ ,ii] ) + b0 )
-					
-					}	
-				}
-     		
-				## continuous covariates
-				if (p2 > 0) {
-					for(ii in 1:p2){
-		                          tempx <- matX[ , ( p1 + ptrt + ii ) ]
-								
-					  x.sig.pars[count, ii] <- updatevar(tempx, nu0, tau0, c0, mu0)
-								
-					  #posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
-					  x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii], c0, mu0)
-					}
-				}	
- 
-      	count <- count+1
-    	}
-    }
+#   	count <- 1
+#   	for(j in 1:k) {
+#     	n.x <- length( unique( s[ s[ , 1 ] == j , 2] ) )  ## number of x clusters within jth y cluster
+#     	
+#     	for( l in 1:n.x ) {
+#       	matX <- x[ ( s[ , 1 ] == j ) & ( s[ , 2 ] == l ) , , drop=FALSE]
+#      
+# 
+# 		 		## binary covariates
+#       	if (ptrt + p1 > 0 ) {
+# 					for( ii in 1:( ptrt + p1 ) ) {   ## binary covariates
+# 					
+# 						x.pi.pars[count, ii] <- rbeta( 1 , sum( matX[ ,ii] ) + a0 , length( matX[ ,ii] ) - sum( matX[ ,ii] ) + b0 )
+# 					
+# 					}	
+# 				}
+#      		
+# 				## continuous covariates
+# 				if (p2 > 0) {
+# 					for(ii in 1:p2){
+# 		                          tempx <- matX[ , ( p1 + ptrt + ii ) ]
+# 								
+# 					  x.sig.pars[count, ii] <- updatevar(tempx, nu0, tau0, c0, mu0)
+# 								
+# 					  #posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
+# 					  x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii], c0, mu0)
+# 					}
+# 				}	
+#  
+#       	count <- count+1
+#     	}
+#     }
+  	
+  	covs <- update_covs(x, s, sortedunique, x.pi.pars,
+  	                    x.mu.pars, x.sig.pars,
+  	                    p1, p2, ptrt,
+  	                    a0, b0, 
+  	                    mu0, nu0, tau0, c0)
+  	
+  	if (p1 + ptrt > 0 & p2 > 0) {
+  	  x.pi.pars <- covs$xpipars
+  	  x.mu.pars <- covs$xmupars
+  	  x.sig.pars <- covs$xsigpars
+  	} else if (p2 == 0) {
+  	  x.pi.pars <- covs$xpipars
+  	} else if (p1 + ptrt == 0) {
+  	  x.mu.pars <- covs$xmupars
+  	  x.sig.pars <- covs$xsigpars
+  	}
   
 	
 
