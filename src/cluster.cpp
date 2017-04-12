@@ -12,7 +12,7 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec u,   //data
 						 mat betaY, vec sig2, Nullable<mat> b2,         //Y params
-						 mat xpipars, mat xmupars, mat xsigpars, //X params
+						 Nullable<mat> xpipars2, Nullable<mat> xmupars2, Nullable<mat> xsigpars2, //X params
 						 int ptrt, int p1, int p2,     //# vars
 						 double alphapsi, double alphatheta,  //alpha
 						 ivec Sy, ivec Sx, mat uniqueS,       //cluster
@@ -26,8 +26,17 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 	// first part if splines are included
 	if ( Z2.isNotNull() ) {
     
-    mat Z, b;
+    mat Z, b, xpipars, xmupars, xsigpars;
 	  vec sig2_b;
+
+    if (p1 + ptrt > 0) {
+      xpipars = as<mat>(xpipars2);
+    }
+
+    if (p2 > 0) {
+      xmupars  = as<mat>(xmupars2);
+      xsigpars = as<mat>(xsigpars2);
+    }
 	  
 	  Z      = as<mat>(Z2);
 	  b      = as<mat>(b2);
@@ -110,10 +119,15 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				//should find row in uniqueS that corresponds to person i
 				vdummy1 = find(uniqueS.col(0)==Sy(j) && uniqueS.col(1)==Sx(j));
 				
-				xpipars.shed_row(vdummy1(0)); // CHECK --- NEEDED TO DO THIS BECAUSE dummy1 is uvec
-				xmupars.shed_row(vdummy1(0));
-				xsigpars.shed_row(vdummy1(0)); 
-				
+				if (p1 + ptrt > 0) {
+          xpipars.shed_row(vdummy1(0)); // CHECK --- NEEDED TO DO THIS BECAUSE dummy1 is uvec
+				}
+        
+        if (p2 > 0) {
+          xmupars.shed_row(vdummy1(0));
+				  xsigpars.shed_row(vdummy1(0)); 
+				}
+
 				//relabel X cluster
 				for(int k = 0; k < Sx.size(); k++) {
 					if(Sy(k) == Sy(j) && Sx(k) > Sx(j))
@@ -147,7 +161,12 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 			
 			
 			numY = betaY.n_rows;
-			numTotalCluster = xmupars.n_rows;
+			if (p2 > 0) {
+        numTotalCluster = xmupars.n_rows;
+      } else {
+        numTotalCluster = xpipars.n_rows;
+       }
+
 			//Rprintf("Total number of clusters: %d\n",numTotalCluster);
 			//Rprintf("Number of Y clusters: %d\n",numY);
 			//existing clusters plus auxiliary parameters;
@@ -190,15 +209,19 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 					nljwoi = vdummy1.size();
 					
 					//likelihood for binary covariates
-					for(int q = 0; q < ptrt+p1; q++) {
-						prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars(count, q), 0);
+          if (p1 + ptrt > 0) {
+            for(int q = 0; q < ptrt+p1; q++) {
+              prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars(count, q), 0);
+            }
 					}
-					
+
 					//likelihood for continuous covariates
-					for(int q = 0; q < p2; q++) {
-						prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars(count,q), sqrt(xsigpars(count,q)), 0 );
-						//Rprintf("prodx2: %.8f\n", prodx2);
-					}
+          if (p2 > 0) {
+            for(int q = 0; q < p2; q++) {
+              prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars(count,q), sqrt(xsigpars(count,q)), 0 );
+              //Rprintf("prodx2: %.8f\n", prodx2);
+            }
+          }
 					
 					probs(count) = ((njwoi*nljwoi)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
 					//Rprintf("njwoi: %d\n", njwoi);
@@ -210,11 +233,8 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 					if(probs(count)<0) {
 						Rprintf("NEGATIVE PROBABILITY ALERT\n");
 						Rprintf("prodx = %.8f\n",prodx);
-						Rprintf("xpars: %.2f, %.2f, %.2f\n", xpipars(count,0), xpipars(count,1), xpipars(count,2));
 						Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
 						Rprintf("prodx2 = %.8f\n",prodx2);
-						Rprintf("xmu: %.2f, %.2f\n", xmupars(count,0), xmupars(count,1));
-						Rprintf("xsig: %.2f, %.2f\n", xsigpars(count,0), xsigpars(count,1));
 						Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
 						Rprintf("likeregy = %.8f\n",likeregy);
 					}
@@ -229,20 +249,28 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 			
 			// EXISTING Y CLUSTER BUT NEW X CLUSTERS
 			//set auxiliary parameters
-			xpipars_aux.set_size(m*numY,p1+ptrt); xpipars_aux.zeros();
-			xmupars_aux.set_size(m*numY,p2); xmupars_aux.zeros();
-			xsigpars_aux.set_size(m*numY,p2); xsigpars_aux.zeros();
-			
+			if (p1 + ptrt > 0) {
+        xpipars_aux.set_size(m*numY,p1+ptrt); xpipars_aux.zeros();
+			}
+      if (p2 > 0) {
+        xmupars_aux.set_size(m*numY,p2); xmupars_aux.zeros();
+			  xsigpars_aux.set_size(m*numY,p2); xsigpars_aux.zeros();
+			}
+
 			for(int w = 0; w < m*numY; w++) {
-				
-				for(int ww = 0; ww < ptrt+p1; ww++) {
-					xpipars_aux(w,ww) = R::rbeta(a0,b0);
-				}
-				
-				for(int ww = 0; ww < p2; ww++) {
-					xsigpars_aux(w,ww) = rinvchisq(nu0,tau0);
-					xmupars_aux(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
-				}
+			  
+        if (p1 + ptrt > 0) {
+          for(int ww = 0; ww < ptrt+p1; ww++) {
+            xpipars_aux(w,ww) = R::rbeta(a0,b0);
+          }
+        }
+			
+        if (p2 > 0) {
+          for(int ww = 0; ww < p2; ww++) {
+            xsigpars_aux(w,ww) = rinvchisq(nu0,tau0);
+            xmupars_aux(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
+          }
+        }
 			}
 			
 			//begin probs for existing Y clusters, but new X clusters
@@ -267,25 +295,25 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				for(int kk = 0; kk < m; kk++) {
 					prodx=1;prodx2=1;
 					//likelihood for binary covariates
-					for(int q = 0; q < ptrt+p1; q++) {
-						prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars_aux(count2, q), 0);
-					} //end for q
-					
+          if (p1 + ptrt > 0) {
+            for(int q = 0; q < ptrt+p1; q++) {
+              prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars_aux(count2, q), 0);
+            } //end for q
+					}
+
 					//likelihood for continuous covariates
-					for(int q = 0; q < p2; q++) {
-						prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars_aux(count2,q), sqrt(xsigpars_aux(count2,q)), 0 );
-					} //end for q
-					
+					if (p2 > 0) {
+            for(int q = 0; q < p2; q++) {
+              prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars_aux(count2,q), sqrt(xsigpars_aux(count2,q)), 0 );
+            } //end for q
+					}
 					
 					probs(count) = ((njwoi*alphapsi/m)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
 					if(probs(count)<0) {
 						Rprintf("NEGATIVE PROBABILITY ALERT\n");
 						Rprintf("prodx = %.8f\n",prodx);
-						Rprintf("xpars: %.2f, %.2f, %.2f\n", xpipars_aux(count2,0), xpipars_aux(count2,1), xpipars_aux(count2,2));
 						Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
 						Rprintf("prodx2 = %.8f\n",prodx2);
-						Rprintf("xmu: %.2f, %.2f\n", xmupars_aux(count2,0), xmupars_aux(count2,1));
-						Rprintf("xsig: %.2f, %.2f\n", xsigpars_aux(count2,0), xsigpars_aux(count2,1));
 						Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
 						Rprintf("likeregy = %.8f\n",likeregy);
 					}
@@ -310,10 +338,15 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 			b_aux.set_size(m,nknots); b_aux.zeros();
 			sig2_b_aux.set_size(m); sig2_b_aux.zeros();
 			
-			
-			Y_xpipars.set_size(m,p1+ptrt); Y_xpipars.zeros();
-			Y_xmupars.set_size(m,p2); Y_xmupars.zeros();
-			Y_xsigpars.set_size(m,p2); Y_xsigpars.zeros();
+			if (p1 + ptrt > 0) {
+			  Y_xpipars.set_size(m,p1+ptrt); Y_xpipars.zeros();
+			}
+
+      if (p2 > 0) {
+        Y_xmupars.set_size(m,p2); Y_xmupars.zeros();
+        Y_xsigpars.set_size(m,p2); Y_xsigpars.zeros();
+      }
+
 			for(int w = 0; w < m; w++) {
 				
 				sig2_aux(w) = 1/R::rgamma(beta_a0,beta_b0);
@@ -325,15 +358,19 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				for(int ww = 0; ww < nknots; ww++) {
 					b_aux(w,ww) = R::rnorm(0,sqrt(sig2_b_aux(w)));
 				}
+			
+        if (p1 + ptrt > 0) {
+          for(int ww = 0; ww < ptrt + p1; ww++) {
+            Y_xpipars(w,ww) = R::rbeta(a0,b0);
+          }
+        }
 				
-				for(int ww = 0; ww < ptrt + p1; ww++) {
-					Y_xpipars(w,ww) = R::rbeta(a0,b0);
-				}
-				
-				for(int ww = 0; ww < p2; ww++) {
-					Y_xsigpars(w,ww) = rinvchisq(nu0,tau0);
-					Y_xmupars(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
-				}
+        if (p2 > 0) {
+          for(int ww = 0; ww < p2; ww++) {
+            Y_xsigpars(w,ww) = rinvchisq(nu0,tau0);
+            Y_xmupars(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
+          }
+        }
 			}
 
 			//Rprintf("Calculate probabilities for new clusters\n");
@@ -354,25 +391,26 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				prodx2 = 1;
 				
 				//likelihood for binary covariates
-				for(int q = 0; q < ptrt+p1; q++) {
-					prodx = prodx*R::dbinom(Xonly(j,q), 1, Y_xpipars(k, q), 0);
-				}
+        if (p1 + ptrt > 0) {
+          for(int q = 0; q < ptrt+p1; q++) {
+            prodx = prodx*R::dbinom(Xonly(j,q), 1, Y_xpipars(k, q), 0);
+          }
+        }
 				
 				//likelihood for continuous covariates
-				for(int q = 0; q < p2; q++) {
-					prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), Y_xmupars(k,q), sqrt(Y_xsigpars(k,q)), 0 );
-				}
+        if (p2 > 0) {
+          for(int q = 0; q < p2; q++) {
+            prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), Y_xmupars(k,q), sqrt(Y_xsigpars(k,q)), 0 );
+          }
+        }
 				
 				probs(count) = (alphatheta/m)*prodx*prodx2*likeregy*likeregb;
 				//Rprintf("count + prob: %.2f, %d\n",count,probs(count));
 				if(probs(count)<0) {
 					Rprintf("NEGATIVE PROBABILITY ALERT\n");
 					Rprintf("prodx = %.8f\n",prodx);
-					Rprintf("xpars: %.2f, %.2f, %.2f\n", Y_xpipars(k,0), Y_xpipars(k,1), Y_xpipars(k,2));
 					Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
 					Rprintf("prodx2 = %.8f\n",prodx2);
-					Rprintf("xmu: %.2f, %.2f\n", Y_xmupars(k,0), Y_xmupars(k,1));
-					Rprintf("xsig: %.2f, %.2f\n", Y_xsigpars(k,0), Y_xsigpars(k,1));
 					Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
 					Rprintf("likeregy = %.8f\n",likeregy);
 				}
@@ -419,13 +457,17 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				sig2_b.row(numY) = sig2_b_aux.row(newCluster-numTotalCluster-m*numY-1);
 				sig2.insert_rows(numY,1);
 				sig2.row(numY) = sig2_aux.row(newCluster-numTotalCluster-m*numY-1);
-				xpipars.insert_rows(numTotalCluster,1);
-				xpipars.row(numTotalCluster) = Y_xpipars.row(newCluster-numTotalCluster-m*numY-1);
-				xmupars.insert_rows(numTotalCluster,1);
-				xmupars.row(numTotalCluster) = Y_xmupars.row(newCluster-numTotalCluster-m*numY-1);
-				xsigpars.insert_rows(numTotalCluster,1);
-				xsigpars.row(numTotalCluster) = Y_xsigpars.row(newCluster-numTotalCluster-m*numY-1);
-			}
+				if (p1 + ptrt > 0) {
+          xpipars.insert_rows(numTotalCluster,1);
+          xpipars.row(numTotalCluster) = Y_xpipars.row(newCluster-numTotalCluster-m*numY-1);
+				}
+        if (p2 > 0) {
+          xmupars.insert_rows(numTotalCluster,1);
+          xmupars.row(numTotalCluster) = Y_xmupars.row(newCluster-numTotalCluster-m*numY-1);
+          xsigpars.insert_rows(numTotalCluster,1);
+          xsigpars.row(numTotalCluster) = Y_xsigpars.row(newCluster-numTotalCluster-m*numY-1);
+			  }
+      }
 			else  //new X cluster within Y cluster
 			{
 				//Rprintf("Chose new X cluster\n");
@@ -440,12 +482,16 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				uniqueS.insert_rows(numXj,1);
 				uniqueS(numXj,0) = Sy(j);
 				uniqueS(numXj,1) = Sx(j);
-				xpipars.insert_rows(numXj,1);
-				xpipars.row(numXj) = xpipars_aux.row(newCluster-numTotalCluster-1);
-				xmupars.insert_rows(numXj,1);
-				xmupars.row(numXj) = xmupars_aux.row(newCluster-numTotalCluster-1);
-				xsigpars.insert_rows(numXj,1);
-				xsigpars.row(numXj) = xsigpars_aux.row(newCluster-numTotalCluster-1);
+				if (p1 + ptrt > 0) {
+          xpipars.insert_rows(numXj,1);
+          xpipars.row(numXj) = xpipars_aux.row(newCluster-numTotalCluster-1);
+				}
+        if (p2 > 0) {
+          xmupars.insert_rows(numXj,1);
+          xmupars.row(numXj) = xmupars_aux.row(newCluster-numTotalCluster-1);
+          xsigpars.insert_rows(numXj,1);
+          xsigpars.row(numXj) = xsigpars_aux.row(newCluster-numTotalCluster-1);
+        }
 			}
 			
 			//Rprintf("Y cluster: %d\n",Sy(j));
@@ -538,9 +584,14 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				//should find row in uniqueS that corresponds to person i
 				vdummy1 = find(uniqueS.col(0)==Sy(j) && uniqueS.col(1)==Sx(j));
 				
-				xpipars.shed_row(vdummy1(0)); // CHECK --- NEEDED TO DO THIS BECAUSE dummy1 is uvec
-				xmupars.shed_row(vdummy1(0));
-				xsigpars.shed_row(vdummy1(0)); 
+				if (p1 + ptrt > 0) {
+          xpipars.shed_row(vdummy1(0)); // CHECK --- NEEDED TO DO THIS BECAUSE dummy1 is uvec
+				}
+        
+        if (p2 > 0) {
+          xmupars.shed_row(vdummy1(0));
+				  xsigpars.shed_row(vdummy1(0)); 
+				}
 				
 				//relabel X cluster
 				for(int k = 0; k < Sx.size(); k++) {
@@ -575,7 +626,12 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 			
 			
 			numY = betaY.n_rows;
-			numTotalCluster = xmupars.n_rows;
+			if (p2 > 0) {
+        numTotalCluster = xmupars.n_rows;
+      } else {
+        numTotalCluster = xpipars.n_rows;
+      }
+      
 			//Rprintf("Total number of clusters: %d\n",numTotalCluster);
 			//Rprintf("Number of Y clusters: %d\n",numY);
 			//existing clusters plus auxiliary parameters;
@@ -614,24 +670,25 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 					nljwoi = vdummy1.size();
 					
 					//likelihood for binary covariates
-					for(int q = 0; q < ptrt+p1; q++) {
-						prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars(count, q), 0);
-					}
+          if (p1 + ptrt > 0) {
+            for(int q = 0; q < ptrt+p1; q++) {
+              prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars(count, q), 0);
+            }
+          }
 					
 					//likelihood for continuous covariates
-					for(int q = 0; q < p2; q++) {
-						prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars(count,q), sqrt(xsigpars(count,q)), 0 );
+          if (p2 > 0) {
+            for(int q = 0; q < p2; q++) {
+              prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars(count,q), sqrt(xsigpars(count,q)), 0 );
+            }
 					}
-					
+
 					probs(count) = ((njwoi*nljwoi)/(njwoi+alphapsi))*likeregy*prodx*prodx2;
 					if(probs(count)<0) {
 						Rprintf("NEGATIVE PROBABILITY ALERT\n");
 						Rprintf("prodx = %.8f\n",prodx);
-						Rprintf("xpars: %.2f, %.2f, %.2f\n", xpipars(count,0), xpipars(count,1), xpipars(count,2));
 						Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
 						Rprintf("prodx2 = %.8f\n",prodx2);
-						Rprintf("xmu: %.2f, %.2f\n", xmupars(count,0), xmupars(count,1));
-						Rprintf("xsig: %.2f, %.2f\n", xsigpars(count,0), xsigpars(count,1));
 						Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
 						Rprintf("likeregy = %.8f\n",likeregy);
 					}
@@ -646,20 +703,28 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 			
 			// EXISTING Y CLUSTER BUT NEW X CLUSTERS
 			//set auxiliary parameters
-			xpipars_aux.set_size(m*numY,p1+ptrt); xpipars_aux.zeros();
-			xmupars_aux.set_size(m*numY,p2); xmupars_aux.zeros();
-			xsigpars_aux.set_size(m*numY,p2); xsigpars_aux.zeros();
-			
+			if (p1 + ptrt > 0) {
+        xpipars_aux.set_size(m*numY,p1+ptrt); xpipars_aux.zeros();
+      }
+      if (p2 > 0) {
+			  xmupars_aux.set_size(m*numY,p2); xmupars_aux.zeros();
+			  xsigpars_aux.set_size(m*numY,p2); xsigpars_aux.zeros();
+			}
+
 			for(int w = 0; w < m*numY; w++) {
-				
-				for(int ww = 0; ww < ptrt+p1; ww++) {
-					xpipars_aux(w,ww) = R::rbeta(a0,b0);
-				}
-				
-				for(int ww = 0; ww < p2; ww++) {
-					xsigpars_aux(w,ww) = rinvchisq(nu0,tau0);
-					xmupars_aux(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
-				}
+			
+        if (p1 + ptrt > 0) {
+          for(int ww = 0; ww < ptrt+p1; ww++) {
+            xpipars_aux(w,ww) = R::rbeta(a0,b0);
+          }
+        }
+			
+        if (p2 > 0) {
+          for(int ww = 0; ww < p2; ww++) {
+            xsigpars_aux(w,ww) = rinvchisq(nu0,tau0);
+            xmupars_aux(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
+          }
+        }
 			}
 			
 			//begin probs for existing Y clusters, but new X clusters
@@ -680,25 +745,25 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				for(int kk = 0; kk < m; kk++) {
 					prodx=1;prodx2=1;
 					//likelihood for binary covariates
-					for(int q = 0; q < ptrt+p1; q++) {
-						prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars_aux(count2, q), 0);
-					} //end for q
+          if (p1 + ptrt > 0) {
+            for(int q = 0; q < ptrt+p1; q++) {
+              prodx = prodx*R::dbinom(Xonly(j,q), 1, xpipars_aux(count2, q), 0);
+            } //end for q
+          }
 					
 					//likelihood for continuous covariates
-					for(int q = 0; q < p2; q++) {
-						prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars_aux(count2,q), sqrt(xsigpars_aux(count2,q)), 0 );
-					} //end for q
-					
+          if (p2 > 0) {
+            for(int q = 0; q < p2; q++) {
+              prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), xmupars_aux(count2,q), sqrt(xsigpars_aux(count2,q)), 0 );
+            } //end for q
+					}
 					
 					probs(count) = ((njwoi*alphapsi/m)/(njwoi+alphapsi))*likeregy*prodx*prodx2;
 					if(probs(count)<0) {
 						Rprintf("NEGATIVE PROBABILITY ALERT\n");
 						Rprintf("prodx = %.8f\n",prodx);
-						Rprintf("xpars: %.2f, %.2f, %.2f\n", xpipars_aux(count2,0), xpipars_aux(count2,1), xpipars_aux(count2,2));
 						Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
 						Rprintf("prodx2 = %.8f\n",prodx2);
-						Rprintf("xmu: %.2f, %.2f\n", xmupars_aux(count2,0), xmupars_aux(count2,1));
-						Rprintf("xsig: %.2f, %.2f\n", xsigpars_aux(count2,0), xsigpars_aux(count2,1));
 						Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
 						Rprintf("likeregy = %.8f\n",likeregy);
 					}
@@ -721,10 +786,14 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 			betaY_aux.set_size(m,nbeta); betaY_aux.zeros();
 			sig2_aux.set_size(m); sig2_aux.zeros();
 			
-			
-			Y_xpipars.set_size(m,p1+ptrt); Y_xpipars.zeros();
-			Y_xmupars.set_size(m,p2); Y_xmupars.zeros();
-			Y_xsigpars.set_size(m,p2); Y_xsigpars.zeros();
+		  if (p1 + ptrt > 0) {	
+			  Y_xpipars.set_size(m,p1+ptrt); Y_xpipars.zeros();
+			}
+      if (p2 > 0) {
+        Y_xmupars.set_size(m,p2); Y_xmupars.zeros();
+			  Y_xsigpars.set_size(m,p2); Y_xsigpars.zeros();
+      }
+
 			for(int w = 0; w < m; w++) {
 				
 				sig2_aux(w) = 1/R::rgamma(beta_a0,beta_b0);
@@ -732,15 +801,18 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				betaY_aux.row(w) = trans(mvrnorm(beta0,sig2_aux(w)*prec0.i()));
 				
 				
-				
-				for(int ww = 0; ww < ptrt + p1; ww++) {
-					Y_xpipars(w,ww) = R::rbeta(a0,b0);
-				}
-				
-				for(int ww = 0; ww < p2; ww++) {
-					Y_xsigpars(w,ww) = rinvchisq(nu0,tau0);
-					Y_xmupars(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
-				}
+				if (p1 + ptrt > 0) {
+          for(int ww = 0; ww < ptrt + p1; ww++) {
+            Y_xpipars(w,ww) = R::rbeta(a0,b0);
+          }
+        }
+			
+        if (p2 > 0) {
+          for(int ww = 0; ww < p2; ww++) {
+            Y_xsigpars(w,ww) = rinvchisq(nu0,tau0);
+            Y_xmupars(w,ww) = R::rnorm(mu0,xsigpars_aux(w,ww)/sqrt(c0));
+          }
+        }
 			}
 
 			//Rprintf("Calculate probabilities for new clusters\n");
@@ -756,25 +828,26 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				prodx2 = 1;
 				
 				//likelihood for binary covariates
-				for(int q = 0; q < ptrt+p1; q++) {
-					prodx = prodx*R::dbinom(Xonly(j,q), 1, Y_xpipars(k, q), 0);
-				}
+        if (p1 + ptrt > 0) {
+          for(int q = 0; q < ptrt+p1; q++) {
+            prodx = prodx*R::dbinom(Xonly(j,q), 1, Y_xpipars(k, q), 0);
+          }
+        }
 				
 				//likelihood for continuous covariates
-				for(int q = 0; q < p2; q++) {
-					prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), Y_xmupars(k,q), sqrt(Y_xsigpars(k,q)), 0 );
-				}
+				if (p2 > 0) {
+          for(int q = 0; q < p2; q++) {
+            prodx2 = prodx2*R::dnorm(Xonly(j,ptrt+p1+q), Y_xmupars(k,q), sqrt(Y_xsigpars(k,q)), 0 );
+          }
+        }
 				
 				probs(count) = (alphatheta/m)*prodx*prodx2*likeregy;
 				//Rprintf("count + prob: %.2f, %d\n",count,probs(count));
 				if(probs(count)<0) {
 					Rprintf("NEGATIVE PROBABILITY ALERT\n");
 					Rprintf("prodx = %.8f\n",prodx);
-					Rprintf("xpars: %.2f, %.2f, %.2f\n", Y_xpipars(k,0), Y_xpipars(k,1), Y_xpipars(k,2));
 					Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
 					Rprintf("prodx2 = %.8f\n",prodx2);
-					Rprintf("xmu: %.2f, %.2f\n", Y_xmupars(k,0), Y_xmupars(k,1));
-					Rprintf("xsig: %.2f, %.2f\n", Y_xsigpars(k,0), Y_xsigpars(k,1));
 					Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
 					Rprintf("likeregy = %.8f\n",likeregy);
 				}
@@ -817,12 +890,16 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				betaY.row(numY) = betaY_aux.row(newCluster-numTotalCluster-m*numY-1);
 				sig2.insert_rows(numY,1);
 				sig2.row(numY) = sig2_aux.row(newCluster-numTotalCluster-m*numY-1);
-				xpipars.insert_rows(numTotalCluster,1);
-				xpipars.row(numTotalCluster) = Y_xpipars.row(newCluster-numTotalCluster-m*numY-1);
-				xmupars.insert_rows(numTotalCluster,1);
-				xmupars.row(numTotalCluster) = Y_xmupars.row(newCluster-numTotalCluster-m*numY-1);
-				xsigpars.insert_rows(numTotalCluster,1);
-				xsigpars.row(numTotalCluster) = Y_xsigpars.row(newCluster-numTotalCluster-m*numY-1);
+				if (p1 + ptrt > 0) {
+          xpipars.insert_rows(numTotalCluster,1);
+				  xpipars.row(numTotalCluster) = Y_xpipars.row(newCluster-numTotalCluster-m*numY-1);
+				}
+        if (p2 > 0) {
+          xmupars.insert_rows(numTotalCluster,1);
+          xmupars.row(numTotalCluster) = Y_xmupars.row(newCluster-numTotalCluster-m*numY-1);
+          xsigpars.insert_rows(numTotalCluster,1);
+          xsigpars.row(numTotalCluster) = Y_xsigpars.row(newCluster-numTotalCluster-m*numY-1);
+        }
 			}
 			else  //new X cluster within Y cluster
 			{
@@ -838,12 +915,16 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 				uniqueS.insert_rows(numXj,1);
 				uniqueS(numXj,0) = Sy(j);
 				uniqueS(numXj,1) = Sx(j);
-				xpipars.insert_rows(numXj,1);
-				xpipars.row(numXj) = xpipars_aux.row(newCluster-numTotalCluster-1);
-				xmupars.insert_rows(numXj,1);
-				xmupars.row(numXj) = xmupars_aux.row(newCluster-numTotalCluster-1);
-				xsigpars.insert_rows(numXj,1);
-				xsigpars.row(numXj) = xsigpars_aux.row(newCluster-numTotalCluster-1);
+				if (p1 + ptrt > 0) {
+          xpipars.insert_rows(numXj,1);
+				  xpipars.row(numXj) = xpipars_aux.row(newCluster-numTotalCluster-1);
+				}
+        if (p2 > 0) {
+          xmupars.insert_rows(numXj,1);
+				  xmupars.row(numXj) = xmupars_aux.row(newCluster-numTotalCluster-1);
+				  xsigpars.insert_rows(numXj,1);
+				  xsigpars.row(numXj) = xsigpars_aux.row(newCluster-numTotalCluster-1);
+        }
 			}
 			
 			//Rprintf("Y cluster: %d\n",Sy(j));
