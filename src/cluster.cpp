@@ -23,20 +23,23 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
 						 double alp_a0, double alp_b0, //priors on alpha
 						 int m) {
  	
+  mat xpipars, xmupars, xsigpars;
+
+  if (p1 + ptrt > 0) {
+    xpipars = as<mat>(xpipars2);
+  }
+
+  if (p2 > 0) {
+    xmupars  = as<mat>(xmupars2);
+    xsigpars = as<mat>(xsigpars2);
+  }
+
 	// first part if splines are included
 	if ( Z2.isNotNull() ) {
     
-    mat Z, b, xpipars, xmupars, xsigpars;
+    mat Z, b;
 	  vec sig2_b;
 
-    if (p1 + ptrt > 0) {
-      xpipars = as<mat>(xpipars2);
-    }
-
-    if (p2 > 0) {
-      xmupars  = as<mat>(xmupars2);
-      xsigpars = as<mat>(xsigpars2);
-    }
 	  
 	  Z      = as<mat>(Z2);
 	  b      = as<mat>(b2);
