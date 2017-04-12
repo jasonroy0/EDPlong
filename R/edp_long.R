@@ -357,18 +357,22 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	if ( !is.null(n2) ) {
 		h0x <- matrix( NA , nrow = n2 , ncol = ptrt + p1 + p2 )
 		for(i in 1:n2) {
-  		for(j in 1:( ptrt + p1 ) ) {
-    		h0x[i,j] <- beta(a0 + newx[ i , j ] , b0 - newx[ i , j ] + 1 )
-  		}
-  
-  		for(j in 1:p2) {
-    		denom <- ( sqrt( 2 * pi ) / sqrt( c0 ) ) * gamma( nu0 / 2 )*( 2 / ( nu0 * tau0 ) ) ^ ( nu0 / 2 )
-    		cn <- c0 + 1
-    		nun <- nu0 + 1
-    		taun <- ( 1 / nun ) * ( nu0 * tau0 + ( c0 / ( c0 + 1 ) ) * ( mu0 - newx[ i , p1 + ptrt + j ] ) ^ 2 )
-    		num <- ( sqrt( 2 * pi ) / sqrt( cn ) ) * gamma( nun / 2 ) * ( 2 / ( nun * taun ) ) ^ ( nun / 2 )
-    		h0x[i, ptrt + p1 + j] <- num / ( denom * sqrt( 2 * pi ) )
-  		}
+      if (ptrt + p1 > 0) {
+        for(j in 1:( ptrt + p1 ) ) {
+          h0x[i,j] <- beta(a0 + newx[ i , j ] , b0 - newx[ i , j ] + 1 )
+        }
+      }
+ 
+      if (p2 > 0) {
+        for(j in 1:p2) {
+          denom <- ( sqrt( 2 * pi ) / sqrt( c0 ) ) * gamma( nu0 / 2 )*( 2 / ( nu0 * tau0 ) ) ^ ( nu0 / 2 )
+          cn <- c0 + 1
+          nun <- nu0 + 1
+          taun <- ( 1 / nun ) * ( nu0 * tau0 + ( c0 / ( c0 + 1 ) ) * ( mu0 - newx[ i , p1 + ptrt + j ] ) ^ 2 )
+          num <- ( sqrt( 2 * pi ) / sqrt( cn ) ) * gamma( nun / 2 ) * ( 2 / ( nun * taun ) ) ^ ( nun / 2 )
+          h0x[i, ptrt + p1 + j] <- num / ( denom * sqrt( 2 * pi ) )
+        }
+      }
 		}
 	} else h0x <- NULL
 
