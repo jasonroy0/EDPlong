@@ -31,7 +31,7 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 	  mat betaY, vec sig2, Nullable<mat> bregb,
-	  mat xpipars, mat xmupars, mat xsigpars,
+	  Nullable<mat> xpipars2, Nullable<mat> xmupars2, Nullable<mat> xsigpars2,
 	  int ptrt, int p1, int p2,
 	  double alphapsi, double alphatheta,
 	  ivec Sy, ivec Sx, mat uniqueS,
@@ -42,11 +42,20 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 	bool newdata_exists = Xonly2b.isNotNull(); // are there predictions from new data?
 
 	
-	mat Xonly2, h0x, breg, tZ, tZ2;
+	mat Xonly2, h0x, breg, tZ, tZ2, xpipars, xmupars, xsigpars;
 	vec timepoint2;
 
 	// cast nullable back to original types
+
+  if (p1 + ptrt > 0) {
+    xpipars = as<mat>(xpipars2);
+  }
 	
+  if (p2 > 0) {
+    xmupars  = as<mat>(xmupars2);
+    xsigpars = as<mat>(xsigpars2);
+  }
+
 	if (spline_exists) {
 	  breg = as<mat>(bregb);
 	  tZ   = as<mat>(tZb);
@@ -83,12 +92,12 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
   // numBeta = number of beta parameters
   // numTotalCluster = number of total cluster combinations
   int numY, numBeta;
-  int numTotalCluster;
+  //int numTotalCluster;
 
 
   numY = betaY.n_rows;
   numBeta = betaY.n_cols;
-  numTotalCluster = xmupars.n_rows;
+  //numTotalCluster = xmupars.n_rows;
 
   // vector with number of X clusters pertaining to each Y cluster
   ivec numXCluster; numXCluster.zeros(numY); 
@@ -186,14 +195,17 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 					h02 = 1.0;
 					
 					
-
-					for(int ii = 0; ii < ptrt+p1; ii++) {
-						h02 = h02 * R::dbinom(Xonly2(i,ii),1,xpipars(count2,ii),0);
-					}
-					
-					for(int ii = 0; ii < p2; ii++) {
-						h02 = h02 * R::dnorm(Xonly2(i,ptrt+p1+ii),xmupars(count2,ii),xsigpars(count2,ii),0);
-					}
+          if (ptrt + p1 > 0) {
+            for(int ii = 0; ii < ptrt + p1; ii++) {
+              h02 = h02 * R::dbinom(Xonly2(i,ii),1,xpipars(count2,ii),0);
+            }
+          }
+				
+          if (p2 > 0) {
+            for(int ii = 0; ii < p2; ii++) {
+              h02 = h02 * R::dnorm(Xonly2(i,ptrt+p1+ii),xmupars(count2,ii),xsigpars(count2,ii),0);
+            }
+          }
 
 					probs(count) = probs(count) + ( nlj / ( alphapsi + nj ) ) * h02;
 					count2++; 
