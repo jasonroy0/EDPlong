@@ -633,19 +633,21 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
     cat("end of MCMC algorithm\n")
     cat("Total time elapsed: ", Sys.time() - beg.time, "\n")
   }
-  return( list( s            = s.save, 
-								beta.reg     = beta.reg.save, 
-								b.reg        = b.reg.save,
-						  	sig.reg      = sig.reg.save, 
-								u.int        = u.int.save,
-								x.pi.pars    = x.pi.save, 
-								x.mu.pars    = x.mu.save, 
-								x.sig.pars   = x.sig.save,
-								sig.u        = sig.u.save, 
-								alpha.theta  = alpha.theta.rep, 
-								alpha.psi    = alpha.psi.rep ,
-								pred.w.data  = pred.w.data,
-								pred.wo.data = pred.wo.data,
-                pred.wo.datc = pred.wo.data.cluster) )							
+  return( list( s                = s.save, 
+								beta.reg         = beta.reg.save, 
+								b.reg            = b.reg.save,
+						  	sig.reg          = sig.reg.save, 
+								u.int            = u.int.save,
+								x.pi.pars        = x.pi.save, 
+								x.mu.pars        = x.mu.save, 
+								x.sig.pars       = x.sig.save,
+								sig.u            = sig.u.save, 
+								alpha.theta      = alpha.theta.rep, 
+								alpha.psi        = alpha.psi.rep ,
+								pred.w.data      = pred.w.data,
+								pred.wo.data     = pred.wo.data,
+                pred.wo.datc     = pred.wo.data.cluster,
+                total.clusters   = total.clusters,
+                total.Y.clusters = total.Y.clusters) )							
 
 }
