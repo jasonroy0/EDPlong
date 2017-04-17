@@ -324,7 +324,7 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
         }
         
         // probs(count) = ((njwoi*alphapsi/m)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
-        probs(count) = ( (njwoi*alphapsi/m) / ( (njwoi+alphapsi) * (nobs - 1 + alphatheta ) ) * likeregy * prodx * prodx2 * likeregb;
+        probs(count) = ( (njwoi*alphapsi/m) / ( (njwoi+alphapsi) * (nobs - 1 + alphatheta ) ) ) * likeregy * prodx * prodx2 * likeregb;
         
         count++;count2++;
         
