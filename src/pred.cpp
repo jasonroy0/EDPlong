@@ -186,9 +186,10 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 				nj = vdummy.size();              // number of subjects in y cluster
 
 				// Rprintf("nj: %d\n",nj);
-				probs(count) = ( alphapsi / ( alphapsi + nobs ) ) * h0; 
+				// probs(count) = ( alphapsi / ( alphapsi + nobs ) ) * h0; 
+				probs(count) = ( alphapsi / ( alphapsi + nj ) ) * h0; 
 				
-				for(int k = 0; k < numXCluster(j); k++) {
+        for(int k = 0; k < numXCluster(j); k++) {
 
 					vdummy = find( Sy == (j + 1) && Sx == (k + 1) );
 					nlj = vdummy.size();
