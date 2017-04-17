@@ -240,7 +240,7 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
         }
 					
         // probs(count) = ((njwoi*nljwoi)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
-        probs(count) = ( (njwoi*nljwoi) / ( (njwoi+alphapsi) * (alphatheta + nobs) ) ) * likeregy * prodx * prodx2 * likeregb;
+        probs(count) = ( (njwoi*nljwoi) / ( (njwoi+alphapsi) * (alphatheta + nobs - 1) ) ) * likeregy * prodx * prodx2 * likeregb;
 
         if(probs(count)<0) {
           Rprintf("NEGATIVE PROBABILITY ALERT\n");
@@ -324,7 +324,7 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
         }
         
         // probs(count) = ((njwoi*alphapsi/m)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
-        probs(count) = ( (njwoi*alphapsi/m) / ( (njwoi+alphapsi) * (nobs + alphatheta ) ) * likeregy * prodx * prodx2 * likeregb;
+        probs(count) = ( (njwoi*alphapsi/m) / ( (njwoi+alphapsi) * (nobs - 1 + alphatheta ) ) * likeregy * prodx * prodx2 * likeregb;
         
         count++;count2++;
         
@@ -420,7 +420,7 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
       }
       
       // probs(count) = (alphatheta/m)*prodx*prodx2*likeregy*likeregb;
-      probs(count) = (alphatheta/m) / (nobs + alphatheta) * prodx * prodx2 * likeregy * likeregb;
+      probs(count) = (alphatheta/m) / (nobs - 1 + alphatheta) * prodx * prodx2 * likeregy * likeregb;
       
       count++;
     }
