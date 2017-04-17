@@ -240,11 +240,11 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 				 							 sqrt(sig2( chosenCluster - 1 )));
 					}
 				} else {
-					newsig = 1/R::rgamma(beta_a0,beta_b0);
+					newsig = 1/R::rgamma(beta_a0, 1 / beta_b0);
 					// newbeta = trans(mvrnorm(beta0,pow(newsig,2)*prec0));
 					newbeta = trans(mvrnorm(beta0, newsig*prec0));
 					if (spline_exists) {
-						newsigb = 1/R::rgamma(a0_b,b0_b);
+						newsigb = 1/R::rgamma(a0_b,1 / b0_b);
 						for(int ii = 0; ii < tZ2.n_cols; ii++) {
 							newb(ii) = R::rnorm(0.0,sqrt(newsigb));
 						}

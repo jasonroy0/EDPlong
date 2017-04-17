@@ -50,8 +50,8 @@ double newalphatheta(int numYclus, double prioralp, double alp_a0,
   double eta = R::rbeta(prioralp+1,nobs);
   double pieta = (numYclus/(nobs*(1-log(eta))))/(1+numYclus/(nobs*(1-log(eta))));
   int whichmix = R::rbinom(1,pieta);
-  double newalp = whichmix*R::rgamma(alp_a0+numYclus,alp_b0-log(eta)) +
-    (1-whichmix)*R::rgamma(alp_a0+numYclus-1,alp_b0-log(eta));
+  double newalp = whichmix*R::rgamma(alp_a0+numYclus, 1/ (alp_b0-log(eta))) +
+    (1-whichmix)*R::rgamma(alp_a0+numYclus-1, 1 / (alp_b0-log(eta)));
   return newalp;
 }
 */
