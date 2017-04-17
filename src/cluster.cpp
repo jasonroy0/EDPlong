@@ -239,12 +239,8 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
           }
         }
 					
-        probs(count) = ((njwoi*nljwoi)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
-        //Rprintf("njwoi: %d\n", njwoi);
-        //Rprintf("nljwoi: %d\n", nljwoi);
-        //Rprintf("likeregy: %.8f\n", likeregy);
-        //Rprintf("prodx: %.8f\n", prodx);
-        //Rprintf("prodx2: %.8f\n", prodx2);
+        // probs(count) = ((njwoi*nljwoi)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
+        probs(count) = ( (njwoi*nljwoi) / ( (njwoi+alphapsi) * (alphatheta + nobs) ) ) * likeregy * prodx * prodx2 * likeregb;
 
         if(probs(count)<0) {
           Rprintf("NEGATIVE PROBABILITY ALERT\n");
@@ -327,16 +323,9 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
           } //end for q
         }
         
-        probs(count) = ((njwoi*alphapsi/m)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
-        if(probs(count)<0) {
-          Rprintf("NEGATIVE PROBABILITY ALERT\n");
-          Rprintf("prodx = %.8f\n",prodx);
-          Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
-          Rprintf("prodx2 = %.8f\n",prodx2);
-          Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
-          Rprintf("likeregy = %.8f\n",likeregy);
-        }
-        //Rprintf("count + prob: %.2f, %d\n",count,probs(count));
+        // probs(count) = ((njwoi*alphapsi/m)/(njwoi+alphapsi))*likeregy*prodx*prodx2*likeregb;
+        probs(count) = ( (njwoi*alphapsi/m) / ( (njwoi+alphapsi) * (nobs + alphatheta ) ) * likeregy * prodx * prodx2 * likeregb;
+        
         count++;count2++;
         
       }
@@ -430,16 +419,9 @@ List cluster(vec y, mat Xonly, mat Xall, vec ntp, vec ids, Nullable<mat> Z2, vec
         }
       }
       
-      probs(count) = (alphatheta/m)*prodx*prodx2*likeregy*likeregb;
-      //Rprintf("count + prob: %.2f, %d\n",count,probs(count));
-      if(probs(count)<0) {
-        Rprintf("NEGATIVE PROBABILITY ALERT\n");
-        Rprintf("prodx = %.8f\n",prodx);
-        Rprintf("vals: %.1f, %.1f, %.1f\n",Xonly(j,0),Xonly(j,1),Xonly(j,2));
-        Rprintf("prodx2 = %.8f\n",prodx2);
-        Rprintf("vals: %.2f, %.2f\n",Xonly(j,ptrt+p1),Xonly(j,ptrt+p1+1));
-        Rprintf("likeregy = %.8f\n",likeregy);
-      }
+      // probs(count) = (alphatheta/m)*prodx*prodx2*likeregy*likeregb;
+      probs(count) = (alphatheta/m) / (nobs + alphatheta) * prodx * prodx2 * likeregy * likeregb;
+      
       count++;
     }
     
