@@ -175,8 +175,14 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	long.rows <- rep( 1:nrow(x), times = mpp )
 	mat.all   <- x[ long.rows , ]
 	mat.all   <- cbind( 1, mat.all )  ## add intercept
-  mat.all   <- cbind( mat.all, timepoints )  ## add main effect for time
-	## make matrix for spline
+  if (nospline) {
+    mat.all   <- cbind( mat.all, timepoints )  ## add main effect for time
+	}
+
+
+  if( length(beta0) != ncol(mat.all)                ) stop( "beta0 not of right length" )
+
+  ## make matrix for spline
 	if (!nospline) {
 		Z  <- splines::bs(timepoints, knots = knots, degree = degree)
   	nZ <- ncol(Z)
@@ -278,48 +284,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 		sig2.b   <- as.vector(get.reg$sig2_b)
 	}
 
-	## todo:all thhis not needed. pare down
 	uniques             <- unique(s)
 	sortedunique        <- uniques[ order( uniques[ , 1 ], uniques[ , 2 ] ) , , drop=FALSE ]
-	# uniquey             <- unique( s[ , 1 ] )
-	# k                   <- length(uniquey) #number of y clusters
-	## covariate parameters
-# 	count <- 1
-# 	for(j in 1:k) {
-# 		n.x <- length( unique( s[ s[ , 1 ] == j , 2] ) )  ## number of x clusters within jth y cluster
-# 		
-# 		for( l in 1:n.x ) {
-# 			matX <- x[ ( s[ , 1 ] == j ) & ( s[ , 2 ] == l ) , , drop=FALSE]
-# 	 
-# 
-# 			## binary covariates
-# 			if (ptrt + p1 > 0 ) {
-# 				for( ii in 1:( ptrt + p1 ) ) {   ## binary covariates
-# 				
-# 					x.pi.pars[count, ii] <- rbeta( 1 , sum( matX[ ,ii] ) + a0 , length( matX[ ,ii] ) - sum( matX[ ,ii] ) + b0 )
-# 				
-# 				}	
-# 			}
-# 			
-# 			## continuous covariates
-# 			if (p2 > 0) {
-# 				for(ii in 1:p2){
-# 			          tempx <- matX[ , ( p1 + ptrt + ii ) ]
-# 								
-# 							x.sig.pars[count, ii] <- updatevar(tempx, nu0, tau0, c0, mu0)
-# 								
-# 							#posterior for mu. prior for mu|sigma^2 mean 0 prior sample size 2
-# 							x.mu.pars[count, ii] <- updatemean(tempx, x.sig.pars[count, ii], c0, mu0)
-# 				}
-# 			}
-# 			
-# 	
-#  
-#       count <- count+1
-#     
-# 		}
-# 
-#   } ## end covariate parameter update
 	
 	covs <- update_covs(x, s, sortedunique, x.pi.pars,
 	                    x.mu.pars, x.sig.pars,
@@ -413,7 +379,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	for(i in 1:ngibbs) {
 		
   	uniques <- unique(s)
-  	unique0 <- uniques[order(uniques[ , 1],uniques[ , 2]), , drop = FALSE]
+  	unique0 <- uniques[order(uniques[ , 1], uniques[ , 2]), , drop = FALSE]
 
 		## choose cluster
 
