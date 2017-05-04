@@ -597,7 +597,9 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
   if (verbose) {
     cat("end of MCMC algorithm\n")
-    cat("Total time elapsed: ", Sys.time() - beg.time, "\n")
+    cat("Total time elapsed: ")
+    print(Sys.time() - beg.time) 
+    cat("\n")
   }
   return( list( s                = s.save, 
 								beta.reg         = beta.reg.save, 
