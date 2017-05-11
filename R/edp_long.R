@@ -74,6 +74,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 
 
 	# splines -- only perform these if splines have been specified
+  
+  bspline <- FALSE
 	if (!nospline) {
     if(!is.null(spline$bspline)) { 
       bspline <- as.logical(spline$bspline) ## logical whether to use B-spline or thin plate spline
@@ -89,7 +91,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	if (!nospline) {
     if(  is.null(knots)                   )                stop( " knots have NULL value" )
   	if( !is.numeric(knots)                               ) stop( "knots must be a numeric vector" )
-  	if( nknots > 0 & ( !is.numeric(degree) | degree <= 0 ) ) stop( "degree must be integer > 0" )
+  	if( ( !is.numeric(degree) | degree <= 0 ) ) stop( "degree must be integer > 0" )
 	}
 
 	# mcmc
@@ -182,7 +184,7 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
 	long.rows <- rep( 1:nrow(x), times = mpp )
 	mat.all   <- x[ long.rows , ]
 	mat.all   <- cbind( 1, mat.all )  ## add intercept
-  if (nospline) {
+  if (nospline | !bspline) {
     mat.all   <- cbind( mat.all, timepoints )  ## add main effect for time
 	}
 
@@ -584,7 +586,8 @@ edp.long <- function(y, trt, newtrt, x, newx, id, timepoints, prior, mcmc, splin
                   	timepoint   = pt,
 										timepoint2b = pt.new,
                   	tZb         = pZ,
-										tZ2b        = pZ.new )
+										tZ2b        = pZ.new,
+                    bspline     = bspline )
 
 	    pred.w.data[(i - burnin) / pred.rate, ]          <- preds$pred1
   	  if (!is.null(n2)) {

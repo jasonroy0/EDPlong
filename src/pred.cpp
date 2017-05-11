@@ -36,7 +36,8 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 	  double alphapsi, double alphatheta,
 	  ivec Sy, ivec Sx, mat uniqueS,
 	  vec beta0, mat prec0, double beta_a0, double beta_b0, double a0_b, double b0_b,
-	  vec timepoint, Nullable<vec> timepoint2b, Nullable<mat> tZb, Nullable<mat> tZ2b) {
+	  vec timepoint, Nullable<vec> timepoint2b, Nullable<mat> tZb, Nullable<mat> tZ2b,
+    bool bspline) {
   
 	bool spline_exists = bregb.isNotNull(); // are there spline values?
 	bool newdata_exists = Xonly2b.isNotNull(); // are there predictions from new data?
@@ -123,7 +124,7 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
     currX.insert_rows(0, 1);
     currX(0) = 1.0;
 
-    if (!spline_exists) {
+    if (!spline_exists || (spline_exists && !bspline) ) {
       currX.insert_rows(currX.size(), 1);
       currX(currX.size() - 1) = timepoint(i);
     }
@@ -230,7 +231,7 @@ List pred(mat Xonly, Nullable<mat> Xonly2b, Nullable<mat> h0xb,
 			currX.insert_rows(0, 1);
 			currX(0) = 1.0;
 
-      if (!spline_exists) {
+      if (!spline_exists || (spline_exists && !bspline) ) {
 			  currX.insert_rows(currX.size(), 1);
 			  currX(currX.size() - 1) =  timepoint2(i);
       }
